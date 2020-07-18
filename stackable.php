@@ -10,7 +10,7 @@
  * @wordpress-plugin
  * Plugin Name:       Stackable
  * Plugin URI:        https://stackablewp.com
- * Description:       Lighting fast ⚡ duplicate copies of your WordPress site.
+ * Description:       Lightning fast ⚡ duplicate copies of your WordPress site.
  * Version:           1.0.0
  * Author:            Austin Ginder
  * Author URI:        https://austinginder.com
