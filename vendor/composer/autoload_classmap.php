@@ -9,4 +9,5 @@ return array(
     'StackableMode\\Configurations' => $baseDir . '/app/Configurations.php',
     'StackableMode\\Run' => $baseDir . '/app/Run.php',
     'StackableMode\\Sites' => $baseDir . '/app/Sites.php',
+    'StackableMode\\Updater' => $baseDir . '/app/Updater.php',
 );

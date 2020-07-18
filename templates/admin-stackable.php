@@ -39,11 +39,53 @@ input[type=text]:focus {
       <v-layout>
         <v-row>
         <v-col x12 class="mr-4 mt-4">
+            <v-alert type="error" outlined class="mb-5" style="background-color:#ffffff !important;margin:auto;max-width:546px;" v-show="configurations.license_status != 'valid'">
+                {{ configurations.license_response || "License key missing." }} Plugin will not receive updates without an active subscription.
+                <v-row align="center">
+                    <v-col class="grow py-0">
+                        <v-text-field label="License Key" v-model="configurations.license_key"></v-text-field>
+                    </v-col>
+                    <v-col class="shrink py-0">
+                    <v-btn color="primary" small @click="activateLicense()">
+                        Activate License
+                    </v-btn>
+                    </v-col>
+                </v-row>
+            </v-alert>
             <v-card>
             <v-toolbar flat>
                 <v-toolbar-title>Stackable Mode</v-toolbar-title>
                 <v-spacer></v-spacer>
                 <v-toolbar-items>
+                    <v-dialog v-model="show_license" persistent max-width="600px">
+                    <template v-slot:activator="{ on, attrs }">
+                        <v-btn small text v-on="on" v-show="configurations.license_status == 'valid'"><v-icon>mdi-key</v-icon> License Activated</v-btn>
+                    </template>
+                    <v-card>
+                        <v-toolbar flat>
+                            <v-toolbar-title>License Information</v-toolbar-title>
+                            <v-spacer></v-spacer>
+                            Valid through {{ pretty_timestamp_mysql( configurations.license_expires ) }}
+                        </v-toolbar>
+                        <v-card-text>
+                        <v-form ref="form">
+                        <v-container>
+                            <v-row>
+                            <v-col cols="12">
+                                <v-text-field v-model="configurations.license_key" label="License Key*" :rules="[ value => !!value || 'Required.' ]"></v-text-field>
+                            </v-col>
+                            </v-row>
+                        </v-container>
+                        <small>*indicates required field</small>
+                        </v-form>
+                        </v-card-text>
+                        <v-card-actions>
+                        <v-spacer></v-spacer>
+                            <v-btn color="primary" text @click="show_license = false">Close</v-btn>
+                            <v-btn color="primary" text @click="activateLicense()">Update License</v-btn>
+                        </v-card-actions>
+                    </v-card>
+                    </v-dialog>
                     <v-btn small text @click="cloneExisting()"><v-icon>mdi-content-copy</v-icon> Clone current site</v-btn>
                     <v-dialog v-model="new_site.show" persistent max-width="600px">
                     <template v-slot:activator="{ on, attrs }">
@@ -143,7 +185,7 @@ input[type=text]:focus {
                         <td v-show="configurations.files == 'dedicated'">
                             <code>/content/{{ item.stacked_site_id }}/</code>
                         </td>
-                        <td>{{ pretty_timestamp( item.created_at) }}</td>
+                        <td>{{ pretty_timestamp( item.created_at ) }}</td>
                         <td width="68px">
                             <v-tooltip top>
                                 <template v-slot:activator="{ on, attrs }">
@@ -253,6 +295,7 @@ new Vue({
 	}),
     data: {
         response: "",
+        show_license: false,
         configurations: <?php echo ( new StackableMode\Configurations )->get_json(); ?>,
         new_site: { title: "", email: "", username: "", password: "", show: false, valid: true },
         pending_changes: false,
@@ -280,6 +323,17 @@ new Vue({
             });
 			return formatted_date;
 		},
+        pretty_timestamp_mysql( date ) {
+			// takes in '1577584719' then returns "Monday, Jun 18, 2018, 7:44 PM"
+			d = new Date( date );
+			formatted_date = d.toLocaleDateString( "en-us", {
+                "weekday": "short",
+                "year": "numeric",
+                "month": "short",
+                "day": "numeric",
+            });
+			return formatted_date;
+		},
         changeForm() {
             this.pending_changes = true
         },
@@ -296,6 +350,20 @@ new Vue({
 			axios.post( ajaxurl, Qs.stringify( data ) )
 				.then( response => {
                         this.stacked_sites = response.data
+                    })
+                    .catch( error => {
+                        console.log( error )
+                    });
+        },
+        activateLicense() {
+            var data = {
+				'action': 'stacked_ajax',
+				'command': "activateLicense",
+                'value': this.configurations.license_key,
+			}
+			axios.post( ajaxurl, Qs.stringify( data ) )
+				.then( response => {
+                        location.reload()
                     })
                     .catch( error => {
                         console.log( error )

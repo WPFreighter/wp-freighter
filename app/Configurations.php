@@ -17,7 +17,12 @@ class Configurations {
         $this->db_prefix_primary = $db_prefix_primary;
         $configurations          = maybe_unserialize( $wpdb->get_results("select option_value from {$this->db_prefix_primary}options where option_name = 'stacked_configurations'")[0]->option_value );
         if ( empty( $configurations ) ) {
-            $configurations = [ "files" => "shared", "domain_mapping" => "off" ];
+            $configurations      = [ 
+                "files"          => "shared", 
+                "domain_mapping" => "off", 
+                "license_key"    => "",
+                "license_status" => "",
+            ];
         }
         $this->configurations    = $configurations;
     }
@@ -27,19 +32,27 @@ class Configurations {
     }
 
     public function get_json() {
-        $configurations = $this->configurations;
+        $configurations     = $this->configurations;
         if ( empty( $configurations ) ) {
-            $configurations = [ "files" => "shared", "domain_mapping" => "off" ];
+            $configurations = [ 
+                "files"          => "shared", 
+                "domain_mapping" => "off", 
+                "license_key"    => "",
+                "license_status" => "",
+            ];
         }
         return json_encode( $configurations );
     }
 
+    public function license_key() {
+        return isset( $this->configurations["license_key"] ) ? $this->configurations["license_key"] : "";
+    }
+
     public function update_config( $key, $value ) {
         global $wpdb;
-        $configurations           = $this->configurations;
-        $configurations[ $key ]   = $value;
-        $configurations_serialize = serialize( $configurations );
-        $results                  = $wpdb->get_results("select option_id from {$this->db_prefix_primary}options where option_name = 'stacked_configurations'");
+        $this->configurations[ $key ] = $value;
+        $configurations_serialize     = serialize( $this->configurations );
+        $results                      = $wpdb->get_results("select option_id from {$this->db_prefix_primary}options where option_name = 'stacked_configurations'");
         if ( empty( $results ) ) {
             $wpdb->query("INSERT INTO {$this->db_prefix_primary}options ( option_name, option_value) VALUES ( 'stacked_configurations', '$configurations_serialize' )");
         } else {
@@ -67,6 +80,69 @@ class Configurations {
             return true;
         }
         return false;
+    }
+
+    public function activate_license( $key ) {
+        self::update_config( "license_key", $key );
+        // data to send in our API request
+        $api_params = [
+            'edd_action' => 'activate_license',
+            'license'    => $key,
+            'item_id'    => STACKABLE_EDD_SL_ITEM_ID,
+            'url'        => home_url()
+        ];
+
+        // Call the custom API.
+        $response = wp_remote_post( STACKABLE_EDD_SL_STORE_URL, [ 'timeout' => 15, 'sslverify' => false, 'body' => $api_params ] );
+
+        // make sure the response came back okay
+		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
+            $message =  ( is_wp_error( $response ) && ! empty( $response->get_error_message() ) ) ? $response->get_error_message() : __( 'An error occurred, please try again.' );
+            self::update_config( "license_status", "invalid" );
+            self::update_config( "license_response", $message );
+            return;
+		}
+
+        $license_data = json_decode( wp_remote_retrieve_body( $response ) );
+        if ( false === $license_data->success ) {
+            switch( $license_data->error ) {
+                case 'expired' :
+                    $message = sprintf(
+                        __( 'Your license key expired on %s.' ),
+                        date_i18n( get_option( 'date_format' ), strtotime( $license_data->expires, current_time( 'timestamp' ) ) )
+                    );
+                    break;
+                case 'revoked' :
+                    $message = __( 'Your license key has been disabled.' );
+                    break;
+                case 'missing' :
+                    $message = __( 'Invalid license.' );
+                    break;
+                case 'invalid' :
+                case 'site_inactive' :
+                    $message = __( 'Your license is not active for this URL.' );
+                    break;
+                case 'item_name_mismatch' :
+                    $message = sprintf( __( 'This appears to be an invalid license key for %s.' ), EDD_SAMPLE_ITEM_NAME );
+                    break;
+                case 'no_activations_left':
+                    $message = __( 'Your license key has reached its activation limit.' );
+                    break;
+                default :
+                    $message = __( 'An error occurred, please try again.' );
+                    break;
+            }
+        }
+		// Check if anything passed on a message constituting a failure
+		if ( ! empty( $message ) ) {
+            self::update_config( "license_status", "invalid" );
+            self::update_config( "license_response", $message );
+            return;
+        }
+        self::update_config( "license_response", "" );
+        self::update_config( "license_status", $license_data->license );
+        self::update_config( "license_expires", $license_data->expires );
+
     }
 
     public function refresh_configs() {

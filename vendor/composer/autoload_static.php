@@ -24,6 +24,7 @@ class ComposerStaticInit68be0100d7d9e80e822c421ddd2b7c98
         'StackableMode\\Configurations' => __DIR__ . '/../..' . '/app/Configurations.php',
         'StackableMode\\Run' => __DIR__ . '/../..' . '/app/Run.php',
         'StackableMode\\Sites' => __DIR__ . '/../..' . '/app/Sites.php',
+        'StackableMode\\Updater' => __DIR__ . '/../..' . '/app/Updater.php',
     );
 
     public static function getInitializer(ClassLoader $loader)
