@@ -11,10 +11,11 @@ class Run {
             add_filter('https_local_ssl_verify', '__return_false');
             add_filter('http_request_host_is_external', '__return_true');
             define( 'STACKABLE_EDD_SL_STORE_URL', 'https://stackable.test' );
+            define( 'STACKABLE_EDD_SL_ITEM_ID', 44 );
         } else {
             define( 'STACKABLE_EDD_SL_STORE_URL', 'https://stackablewp.com' );
+            define( 'STACKABLE_EDD_SL_ITEM_ID', 74 );
         }
-        define( 'STACKABLE_EDD_SL_ITEM_ID', 44 );
         add_action( 'wp_ajax_stacked_ajax', [ $this, 'ajax_actions' ] );
         add_action( 'admin_bar_menu', [ $this, 'admin_toolbar' ], 100 );
         add_action( 'admin_menu', [ $this, 'admin_menu' ] );
@@ -173,8 +174,8 @@ class Run {
                 "domain"          => ""
             ];
 
-            foreach ($tables as $table ) {
-                if ( strpos($table, $string) !== FALSE) {
+            foreach ( $tables as $table ) {
+                if ( strpos( $table, $string ) !== FALSE) {
                     $wpdb->query( "UPDATE $table set `option_name` = 'stacked_sites' WHERE `option_name` = '{$db_prefix}user_roles'" );
                 }
             }
