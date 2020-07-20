@@ -8,7 +8,7 @@ Stable tag: 1.0
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
-Lighting fast ⚡ duplicate copies of your WordPress site.
+Lightning fast ⚡ duplicate copies of your WordPress site.
 
 == Description ==
 
