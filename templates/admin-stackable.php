@@ -171,16 +171,16 @@ input[type=text]:focus {
                 </template>
                 <template v-slot:body="{ items }">
                     <tbody>
-                    <tr v-for="item in items" :key="item.name">
+                    <tr v-for="item in items">
                         <td width="130px">
                             <v-btn v-if="configurations.domain_mapping == 'off'" small color="primary" @click="switchTo( item.stacked_site_id )">Switch To</v-btn>
                             <v-btn v-else color="primary" :href="`//${item.domain}`" small target="_new"><v-icon small>mdi-open-in-new</v-icon> Open</v-btn>
                         </td>
                         <td v-show="configurations.domain_mapping == 'off'">
-                            <v-text-field v-model="item.name" value="item.name" label="" @input="changeForm()"></v-text-field>
+                            <v-text-field v-model="item.name" label="" value="item.name" @input="changeForm()"></v-text-field>
                         </td>
                         <td v-show="configurations.domain_mapping == 'on'">
-                            <v-text-field v-model="item.domain" label="" value="item.domain" v-show="configurations.domain_mapping == 'on'" @input="changeForm()"></v-text-field>
+                            <v-text-field v-model="item.domain" label="" value="item.domain" @input="changeForm()"></v-text-field>
                         </td>
                         <td v-show="configurations.files == 'dedicated'">
                             <code>/content/{{ item.stacked_site_id }}/</code>
