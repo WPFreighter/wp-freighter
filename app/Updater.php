@@ -129,7 +129,7 @@ class Updater {
 				$_transient_data->response[ $this->name ]->plugin = $this->name;
 
 			} else {
-				$no_update              = new stdClass();
+				$no_update              = new \stdClass();
 				$no_update->id          = '';
 				$no_update->slug        = $this->slug;
 				$no_update->plugin      = $this->name;
@@ -181,7 +181,7 @@ class Updater {
 
 		$update_cache = get_site_transient( 'update_plugins' );
 
-		$update_cache = is_object( $update_cache ) ? $update_cache : new stdClass();
+		$update_cache = is_object( $update_cache ) ? $update_cache : new \stdClass();
 
 		if ( empty( $update_cache->response ) || empty( $update_cache->response[ $this->name ] ) ) {
 
@@ -220,7 +220,7 @@ class Updater {
 				$update_cache->response[ $this->name ] = $version_info;
 
 			} else {
-				$no_update              = new stdClass();
+				$no_update              = new \stdClass();
 				$no_update->id          = '';
 				$no_update->slug        = $this->slug;
 				$no_update->plugin      = $this->name;
