@@ -255,7 +255,7 @@ class Run {
     }
     
     public function activate() {
-        $license_file = plugin_dir_path( __DIR__ ) . "purchased_license.txt";
+        $license_file = plugin_dir_path( __DIR__ ) . "purchased_license.php";
         if ( file_exists ( $license_file ) ) {
             $license_key = file_get_contents ( $license_file );
             ( new Configurations )->activate_license( $license_key );
