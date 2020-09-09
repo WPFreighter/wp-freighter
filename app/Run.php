@@ -63,6 +63,16 @@ class Run {
             echo json_encode( ( new Configurations )->get() );
         }
 
+        if ( $command == "verifyLicense" ) {
+            $key = ( new Configurations )->license_key();
+            if ( $key != $value ) {
+                ( new Configurations )->activate_license( $value );
+            } else {
+                ( new Configurations )->verify_license();
+            }
+            echo json_encode( ( new Configurations )->get() );
+        }
+
         if ( $command == "saveConfigurations" ) {
             $value = (object) $value;
             ( new Configurations )->update( $value->configurations );
@@ -251,6 +261,10 @@ class Run {
     }
 
     public function admin_view() {
+        if ( false === ( $stackable_verify_license = get_transient( 'stackable_verify_license' ) ) ) {
+            set_transient( 'stackable_verify_license', "Verified Stackable license key.", 12 * HOUR_IN_SECONDS );
+            ( new Configurations )->verify_license();
+        }
         require_once plugin_dir_path( __DIR__ ) . '/templates/admin-stackable.php';
     }
     

@@ -145,6 +145,54 @@ class Configurations {
 
     }
 
+    public function verify_license() {
+
+        $key = self::license_key();
+
+        // data to send in our API request
+        $api_params = [
+            'edd_action' => 'check_license',
+            'license'    => $key,
+            'item_id'    => STACKABLE_EDD_SL_ITEM_ID,
+            'url'        => home_url()
+        ];
+
+        // Call the custom API.
+        $response = wp_remote_post( STACKABLE_EDD_SL_STORE_URL, [ 'timeout' => 15, 'sslverify' => false, 'body' => $api_params ] );
+
+        // make sure the response came back okay
+		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
+            $message =  ( is_wp_error( $response ) && ! empty( $response->get_error_message() ) ) ? $response->get_error_message() : __( 'An error occurred, please try again.' );
+            self::update_config( "license_status", "invalid" );
+            self::update_config( "license_response", $message );
+            return;
+		}
+
+        $license_data = json_decode( wp_remote_retrieve_body( $response ) );
+        if ( false === $license_data->success ) {
+            switch( $license_data->error ) {
+                default :
+                    $message = __( 'An error occurred, please try again.' );
+                    break;
+            }
+        }
+		// Check if anything passed on a message constituting a failure
+		if ( ! empty( $message ) ) {
+            self::update_config( "license_status", "invalid" );
+            self::update_config( "license_response", $message );
+            return;
+        }
+        if ( $license_data->license == 'invalid' ) {
+            self::update_config( "license_status", "invalid" );
+            self::update_config( "license_response", "License is invalid" );
+            return;
+        }
+        self::update_config( "license_response", "" );
+        self::update_config( "license_status", $license_data->license );
+        self::update_config( "license_expires", $license_data->expires );
+
+    }
+
     public function refresh_configs() {
         if ( ! file_exists( ABSPATH . "wp-config.php" ) ) {
             echo "Can not locate wp-config.php file";
