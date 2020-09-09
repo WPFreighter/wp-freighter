@@ -91,8 +91,20 @@ class Run {
                     unset( $stacked_sites[$key] );  
                 }
             }
+
             $stacked_sites_serialize = serialize( $stacked_sites );
             $wpdb->query("UPDATE ${db_prefix_primary}options set option_value = '$stacked_sites_serialize' where option_name = 'stacked_sites'");
+
+            if ( ! empty ( $value ) ) {
+                $site_table_prefix = "stacked_{$value}_";
+                $tables            = array_column( $wpdb->get_results("show tables"), "Tables_in_". DB_NAME );
+                foreach ( $tables as $table ) {
+                    if ( substr( $table, 0, strlen( $site_table_prefix ) ) != $site_table_prefix ) {
+                        continue;
+                    }
+                    $wpdb->query( "DROP TABLE IF EXISTS $table" );
+                }
+            }
             echo json_encode( $stacked_sites );
         }
 
@@ -133,9 +145,6 @@ class Run {
                 $wpdb->query("UPDATE ${db_prefix_primary}options set option_value = '$stacked_sites_serialize' where option_name = 'stacked_sites'");
             }
             echo json_encode( $stacked_sites );
-            
-            //setcookie( 'stacked_site_id', $value, time() + 31536000, '/' );
-            //$_COOKIE[ "stacked_site_id" ] = $value;
 
             // Install WordPress to new table prefix
             $table_prefix = $new_table_prefix;
@@ -196,6 +205,7 @@ class Run {
             } else {
                 $wpdb->query("UPDATE ${db_prefix_primary}options set option_value = '$stacked_sites_serialize' where option_name = 'stacked_sites'");
             }
+
             echo json_encode( $stacked_sites );
         }
         wp_die();
