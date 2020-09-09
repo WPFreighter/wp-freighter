@@ -39,9 +39,9 @@ input[type=text]:focus {
       <v-layout>
         <v-row>
         <v-col x12 class="mr-4 mt-4">
-            <v-alert type="error" outlined class="mb-5" style="background-color:#ffffff !important;margin:auto;max-width:546px;" v-show="configurations.license_status != 'valid'">
+            <v-alert type="error" outlined class="mb-5" style="background-color:#ffffff !important;margin:auto;max-width:560px;" v-show="configurations.license_status != 'valid'">
                 <div v-if="configurations.license_status == 'expired'">
-                    License has expired on {{ pretty_timestamp_mysql( configurations.license_expires ) }}. Plugin will not receive updates without an active subscription. Verify your account status here: <a href="https://stackablewp.com/my-account/">stackablewp.com/my-account</a>.<br /><br />
+                    License has expired on {{ pretty_timestamp_mysql( configurations.license_expires ) }}. Plugin will not receive updates without an active subscription. Verify your account status here: <a href="https://stackablewp.com/my-account/" target="_blank">stackablewp.com/my-account</a>.<br /><br />
                     <v-row align="center">
                     <v-col class="grow py-0">
                         <v-text-field label="License Key" v-model="configurations.license_key"></v-text-field>
@@ -156,12 +156,7 @@ input[type=text]:focus {
                         </v-card>
                         </v-col>
                         <v-col class="shrink">
-                        <v-tooltip top>
-                        <template v-slot:activator="{ on, attrs }">
-                            <v-btn icon v-bind="attrs" v-on="on"><v-icon>mdi-content-copy</v-icon></v-btn>
-                        </template>
-                        <span>Copy Configurations</span>
-                        </v-tooltip>
+                            <v-btn icon title="Copy configurations"><v-icon>mdi-content-copy</v-icon></v-btn>
                         </v-col>
                     </v-row>
                     <v-btn color="primary">
@@ -208,12 +203,7 @@ input[type=text]:focus {
                         </td>
                         <td>{{ pretty_timestamp( item.created_at ) }}</td>
                         <td width="68px">
-                            <v-tooltip top>
-                                <template v-slot:activator="{ on, attrs }">
-                                    <v-btn icon @click="deleteSite( item.stacked_site_id )" v-bind="attrs" v-on="on"><v-icon>mdi-delete</v-icon></v-btn>
-                                </template>
-                                <span>Delete stacked site</span>
-                            </v-tooltip>
+                            <v-btn icon @click="deleteSite( item.stacked_site_id )" title="Delete stacked site"><v-icon>mdi-delete</v-icon></v-btn>
                         </td>
                     </tr>
                     </tbody>
@@ -221,14 +211,9 @@ input[type=text]:focus {
                 </v-data-table>
                 <v-subheader id="files">
                     Files
-                    <v-tooltip top attach="#files" fixed>
-                        <template v-slot:activator="{ on, attrs }">
-                            <v-btn small icon class="mx-1" href="https://stackablewp.com/docs/files/" target="_blank" v-bind="attrs" v-on="on">
-                                <v-icon small color="grey lighten-1">mdi-help-circle</v-icon>
-                            </v-btn>
-                        </template>
-                        <span>View Documentation</span>
-                    </v-tooltip>
+                    <v-btn small icon class="mx-1" href="https://stackablewp.com/support/" target="_blank" title="View Documentation">
+                        <v-icon small color="grey lighten-1">mdi-help-circle</v-icon>
+                    </v-btn>
                 </v-subheader>
                 <v-radio-group v-model="configurations.files" @change="changeForm()" dense class="ml-3 mt-0">
                 <v-row>
@@ -254,14 +239,9 @@ input[type=text]:focus {
                 </v-radio-group>
                 <v-subheader id="domain-mapping">
                     Domain Mapping
-                    <v-tooltip top attach="#domain-mapping" fixed>
-                        <template v-slot:activator="{ on, attrs }">
-                            <v-btn small icon class="mx-1" href="https://stackablewp.com/docs/domain-mapping/" target="_blank" v-bind="attrs" v-on="on">
-                                <v-icon small color="grey lighten-1">mdi-help-circle</v-icon>
-                            </v-btn>
-                        </template>
-                        <span>View Documentation</span>
-                    </v-tooltip>
+                    <v-btn small icon class="mx-1" href="https://stackablewp.com/support/" target="_blank" title="View Documentation">
+                        <v-icon small color="grey lighten-1">mdi-help-circle</v-icon>
+                    </v-btn>
                 </v-subheader>
                 <v-radio-group v-model="configurations.domain_mapping" @change="changeForm()" dense class="ml-3 mt-0">
                 <v-row>
