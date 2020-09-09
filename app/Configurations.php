@@ -223,6 +223,8 @@ class Configurations {
 
         if ( $configurations->domain_mapping == "off" && $configurations->files == "dedicated" ) {
             $site_url       = get_option( 'siteurl' );
+            $site_url       = str_replace( "https://", "", $site_url );
+            $site_url       = str_replace( "http://", "", $site_url );
             $lines_to_add[] = '$stacked_site_id = ( isset( $_COOKIE[ "stacked_site_id" ] ) ? $_COOKIE[ "stacked_site_id" ] : "" );';
             $lines_to_add[] = 'if ( defined( \'WP_CLI\' ) && WP_CLI ) { $stacked_site_id = getenv( \'STACKED_SITE_ID\' ); }';
             $lines_to_add[] = 'if ( ! empty( $stacked_site_id ) ) { define( \'TABLE_PREFIX\', $table_prefix ); $table_prefix = "stacked_{$stacked_site_id}_"; define( \'WP_CONTENT_URL\', "//'. $site_url .'/content/{$stacked_site_id}" ); define( \'WP_CONTENT_DIR\', dirname(__FILE__) . "/content/{$stacked_site_id}" ); }';
