@@ -22,7 +22,7 @@
  * @link       https://austinginder.com
  * @since      1.0.0
  *
- * @package    Stackable
+ * @package    WP Freighter
  */
 
 // If uninstall not called from WordPress, then exit.

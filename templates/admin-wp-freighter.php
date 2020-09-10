@@ -41,7 +41,7 @@ input[type=text]:focus {
         <v-col x12 class="mr-4 mt-4">
             <v-alert type="error" outlined class="mb-5" style="background-color:#ffffff !important;margin:auto;max-width:560px;" v-show="configurations.license_status != 'valid'">
                 <div v-if="configurations.license_status == 'expired'">
-                    License has expired on {{ pretty_timestamp_mysql( configurations.license_expires ) }}. Plugin will not receive updates without an active subscription. Verify your account status here: <a href="https://stackablewp.com/my-account/" target="_blank">stackablewp.com/my-account</a>.<br /><br />
+                    License has expired on {{ pretty_timestamp_mysql( configurations.license_expires ) }}. Plugin will not receive updates without an active subscription. Verify your account status here: <a href="https://wpfreighter.com/my-account/" target="_blank">wpfreighter.com/my-account</a>.<br /><br />
                     <v-row align="center">
                     <v-col class="grow py-0">
                         <v-text-field label="License Key" v-model="configurations.license_key"></v-text-field>
@@ -70,7 +70,7 @@ input[type=text]:focus {
             </v-alert>
             <v-card>
             <v-toolbar flat>
-                <v-toolbar-title>Stackable Mode</v-toolbar-title>
+                <v-toolbar-title>WP Freighter Mode</v-toolbar-title>
                 <v-spacer></v-spacer>
                 <v-toolbar-items>
                     <v-dialog v-model="show_license" persistent max-width="600px">
@@ -146,7 +146,7 @@ input[type=text]:focus {
             </v-toolbar>
             <v-card-text>
                 <v-alert type="error" outlined v-if="configurations.unable_to_save">
-                    Unable to save Stackable configurations to <code>wp-config.php</code>. The following will need to be manually added to your <code>wp-config.php</code> then verified. This should be placed directly after the line <code>$table_prefix = 'wp_';</code>.
+                    Unable to save WP Freighter configurations to <code>wp-config.php</code>. The following will need to be manually added to your <code>wp-config.php</code> then verified. This should be placed directly after the line <code>$table_prefix = 'wp_';</code>.
                     <v-row align="center">
                         <v-col class="grow">
                         <v-card class="my-3" outlined>
@@ -211,7 +211,7 @@ input[type=text]:focus {
                 </v-data-table>
                 <v-subheader id="files">
                     Files
-                    <v-btn small icon class="mx-1" href="https://stackablewp.com/support/" target="_blank" title="View Documentation">
+                    <v-btn small icon class="mx-1" href="https://wpfreighter.com/support/" target="_blank" title="View Documentation">
                         <v-icon small color="grey lighten-1">mdi-help-circle</v-icon>
                     </v-btn>
                 </v-subheader>
@@ -239,7 +239,7 @@ input[type=text]:focus {
                 </v-radio-group>
                 <v-subheader id="domain-mapping">
                     Domain Mapping
-                    <v-btn small icon class="mx-1" href="https://stackablewp.com/support/" target="_blank" title="View Documentation">
+                    <v-btn small icon class="mx-1" href="https://wpfreighter.com/support/" target="_blank" title="View Documentation">
                         <v-icon small color="grey lighten-1">mdi-help-circle</v-icon>
                     </v-btn>
                 </v-subheader>
@@ -297,10 +297,10 @@ new Vue({
     data: {
         response: "",
         show_license: false,
-        configurations: <?php echo ( new StackableMode\Configurations )->get_json(); ?>,
+        configurations: <?php echo ( new WPFreighter\Configurations )->get_json(); ?>,
         new_site: { title: "", email: "", username: "", password: "", show: false, valid: true },
         pending_changes: false,
-        stacked_sites: <?php echo ( new StackableMode\Sites )->get_json(); ?>,
+        stacked_sites: <?php echo ( new WPFreighter\Sites )->get_json(); ?>,
         headers: [
           { text: '', value: 'stacked_site_id' },
           { text: 'Label', value: 'name' },

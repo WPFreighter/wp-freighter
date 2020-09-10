@@ -6,5 +6,5 @@ $vendorDir = dirname(dirname(__FILE__));
 $baseDir = dirname($vendorDir);
 
 return array(
-    'StackableMode\\' => array($baseDir . '/app'),
+    'WPFreighter\\' => array($baseDir . '/app'),
 );

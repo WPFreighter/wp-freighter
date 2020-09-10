@@ -1,6 +1,6 @@
 <?php
 
-namespace StackableMode;
+namespace WPFreighter;
 
 class Configurations {
 
@@ -88,12 +88,12 @@ class Configurations {
         $api_params = [
             'edd_action' => 'activate_license',
             'license'    => $key,
-            'item_id'    => STACKABLE_EDD_SL_ITEM_ID,
+            'item_id'    => WP_FREIGHTER_EDD_SL_ITEM_ID,
             'url'        => home_url()
         ];
 
         // Call the custom API.
-        $response = wp_remote_post( STACKABLE_EDD_SL_STORE_URL, [ 'timeout' => 15, 'sslverify' => false, 'body' => $api_params ] );
+        $response = wp_remote_post( WP_FREIGHTER_EDD_SL_STORE_URL, [ 'timeout' => 15, 'sslverify' => false, 'body' => $api_params ] );
 
         // make sure the response came back okay
 		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
@@ -153,12 +153,12 @@ class Configurations {
         $api_params = [
             'edd_action' => 'check_license',
             'license'    => $key,
-            'item_id'    => STACKABLE_EDD_SL_ITEM_ID,
+            'item_id'    => WP_FREIGHTER_EDD_SL_ITEM_ID,
             'url'        => home_url()
         ];
 
         // Call the custom API.
-        $response = wp_remote_post( STACKABLE_EDD_SL_STORE_URL, [ 'timeout' => 15, 'sslverify' => false, 'body' => $api_params ] );
+        $response = wp_remote_post( WP_FREIGHTER_EDD_SL_STORE_URL, [ 'timeout' => 15, 'sslverify' => false, 'body' => $api_params ] );
 
         // make sure the response came back okay
 		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
@@ -245,17 +245,17 @@ class Configurations {
 
         $wp_config_content = file_get_contents( $wp_config_file );
         $working           = explode( "\n", $wp_config_content );
-        $lines_to_add      = [ '', '/* Stackable Mode */' ];
+        $lines_to_add      = [ '', '/* WP Freighter Mode */' ];
         $stacked_sites     = ( new Sites )->get();
 
-        // Remove Stackable configs. Any lines containing '/* Stackable Mode */', 'stacked_site_id' and '$stacked_mappings'.
+        // Remove WP Freighter configs. Any lines containing '/* WP Freighter Mode */', 'stacked_site_id' and '$stacked_mappings'.
         foreach( $working as $key => $line ) {
-            if ( strpos( $line, '/* Stackable Mode */' ) !== false || strpos( $line, 'stacked_site_id' ) !== false || strpos( $line, '$stacked_mappings' ) !== false ) {
+            if ( strpos( $line, '/* WP Freighter Mode */' ) !== false || strpos( $line, 'stacked_site_id' ) !== false || strpos( $line, '$stacked_mappings' ) !== false ) {
                 unset( $working[ $key ] );
             }
         }
 
-        // Add default stackable configurations right after $table_prefix
+        // Add default configurations right after $table_prefix
         foreach( $working as $key => $line ) {
             if ( strpos( $line, '$table_prefix' ) !== false ) {
                 $table_prefix_line = $key;

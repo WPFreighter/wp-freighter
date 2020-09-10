@@ -5,18 +5,18 @@
  *
  * @link              https://austinginder.com
  * @since             1.0.0
- * @package           Stackable
+ * @package           WP Freighter
  *
  * @wordpress-plugin
- * Plugin Name:       Stackable
- * Plugin URI:        https://stackablewp.com
- * Description:       Lightning fast ⚡ duplicate copies of your WordPress site.
+ * Plugin Name:       WP Freighter
+ * Plugin URI:        https://wpfreighter.com
+ * Description:       Efficiently run many WordPress sies from a single WordPress installation.
  * Version:           1.0.0
  * Author:            Austin Ginder
  * Author URI:        https://austinginder.com
  * License:           MIT
  * License URI:       https://opensource.org/licenses/MIT
- * Text Domain:       stackable
+ * Text Domain:       wp-freighter
  * Domain Path:       /languages
  */
 
@@ -26,4 +26,4 @@ if ( ! defined( 'WPINC' ) ) {
 }
 
 require plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
-new StackableMode\Run();
+new WPFreighter\Run();

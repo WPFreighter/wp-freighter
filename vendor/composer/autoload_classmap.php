@@ -6,8 +6,8 @@ $vendorDir = dirname(dirname(__FILE__));
 $baseDir = dirname($vendorDir);
 
 return array(
-    'StackableMode\\Configurations' => $baseDir . '/app/Configurations.php',
-    'StackableMode\\Run' => $baseDir . '/app/Run.php',
-    'StackableMode\\Sites' => $baseDir . '/app/Sites.php',
-    'StackableMode\\Updater' => $baseDir . '/app/Updater.php',
+    'WPFreighter\\Configurations' => $baseDir . '/app/Configurations.php',
+    'WPFreighter\\Run' => $baseDir . '/app/Run.php',
+    'WPFreighter\\Sites' => $baseDir . '/app/Sites.php',
+    'WPFreighter\\Updater' => $baseDir . '/app/Updater.php',
 );

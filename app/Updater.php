@@ -1,6 +1,6 @@
 <?php
 
-namespace StackableMode;
+namespace WPFreighter;
 
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) exit;

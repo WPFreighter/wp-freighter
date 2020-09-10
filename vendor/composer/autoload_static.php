@@ -9,22 +9,22 @@ class ComposerStaticInit68be0100d7d9e80e822c421ddd2b7c98
     public static $prefixLengthsPsr4 = array (
         'S' => 
         array (
-            'StackableMode\\' => 14,
+            'WPFreighter\\' => 14,
         ),
     );
 
     public static $prefixDirsPsr4 = array (
-        'StackableMode\\' => 
+        'WPFreighter\\' => 
         array (
             0 => __DIR__ . '/../..' . '/app',
         ),
     );
 
     public static $classMap = array (
-        'StackableMode\\Configurations' => __DIR__ . '/../..' . '/app/Configurations.php',
-        'StackableMode\\Run' => __DIR__ . '/../..' . '/app/Run.php',
-        'StackableMode\\Sites' => __DIR__ . '/../..' . '/app/Sites.php',
-        'StackableMode\\Updater' => __DIR__ . '/../..' . '/app/Updater.php',
+        'WPFreighter\\Configurations' => __DIR__ . '/../..' . '/app/Configurations.php',
+        'WPFreighter\\Run' => __DIR__ . '/../..' . '/app/Run.php',
+        'WPFreighter\\Sites' => __DIR__ . '/../..' . '/app/Sites.php',
+        'WPFreighter\\Updater' => __DIR__ . '/../..' . '/app/Updater.php',
     );
 
     public static function getInitializer(ClassLoader $loader)

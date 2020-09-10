@@ -1,32 +1,32 @@
 <?php
 
-namespace StackableMode;
+namespace WPFreighter;
 
 class Run {
 
     public function __construct() {
-        if ( defined( 'STACKABLE_DEV_MODE' ) ) {
+        if ( defined( 'WP_FREIGHTER_DEV_MODE' ) ) {
             add_filter('edd_sl_api_request_verify_ssl', '__return_false');
             add_filter('https_ssl_verify', '__return_false');
             add_filter('https_local_ssl_verify', '__return_false');
             add_filter('http_request_host_is_external', '__return_true');
-            define( 'STACKABLE_EDD_SL_STORE_URL', 'https://stackable.test' );
-            define( 'STACKABLE_EDD_SL_ITEM_ID', 44 );
+            define( 'WP_FREIGHTER_EDD_SL_STORE_URL', 'https://wpfreighter.test' );
+            define( 'WP_FREIGHTER_EDD_SL_ITEM_ID', 44 );
         } else {
-            define( 'STACKABLE_EDD_SL_STORE_URL', 'https://stackablewp.com' );
-            define( 'STACKABLE_EDD_SL_ITEM_ID', 74 );
+            define( 'WP_FREIGHTER_EDD_SL_STORE_URL', 'https://wpfreighter.com' );
+            define( 'WP_FREIGHTER_EDD_SL_ITEM_ID', 74 );
         }
         add_action( 'wp_ajax_stacked_ajax', [ $this, 'ajax_actions' ] );
         add_action( 'admin_bar_menu', [ $this, 'admin_toolbar' ], 100 );
         add_action( 'admin_menu', [ $this, 'admin_menu' ] );
-        register_activation_hook( plugin_dir_path( __DIR__ ) . "stackable.php", [ $this, 'activate' ] );
-        register_deactivation_hook( plugin_dir_path( __DIR__ ) . "stackable.php", [ $this, 'deactivate' ] );
+        register_activation_hook( plugin_dir_path( __DIR__ ) . "wp-freighter.php", [ $this, 'activate' ] );
+        register_deactivation_hook( plugin_dir_path( __DIR__ ) . "wp-freighter.php", [ $this, 'deactivate' ] );
         $license_key = ( new Configurations() )->license_key();
-        $plugin_file = plugin_dir_path( __DIR__ ) . "stackable.php";
-        new Updater( STACKABLE_EDD_SL_STORE_URL, $plugin_file, [
+        $plugin_file = plugin_dir_path( __DIR__ ) . "wp-freighter.php";
+        new Updater( WP_FREIGHTER_EDD_SL_STORE_URL, $plugin_file, [
             'version' => '1.0.0',
             'license' => $license_key,
-            'item_id' => STACKABLE_EDD_SL_ITEM_ID,
+            'item_id' => WP_FREIGHTER_EDD_SL_ITEM_ID,
             'author'  => 'Austin Ginder',
             'url'     => home_url(),
             'beta'    => false
@@ -44,7 +44,7 @@ class Run {
         $value         = $_POST['value'];
         $stacked_sites = ( new Sites )->get();
 
-        if ( $_GET['command'] == "exitStackable" ) {
+        if ( $_GET['command'] == "exitWPFreighter" ) {
             setcookie( 'stacked_site_id', null, -1, '/');
             unset( $_COOKIE[ "stacked_site_id" ] );
             wp_redirect( $_SERVER['HTTP_REFERER'] );
@@ -151,8 +151,8 @@ class Run {
             wp_set_wpdb_vars();
             wp_install( $new_site->title, $new_site->username, $new_site->email, true, '', wp_slash( $new_site->password ), "en" );
 
-            // Activate Stackable
-            $wpdb->query( "UPDATE {$new_table_prefix}options set `option_value` = 'a:1:{i:0;s:23:\"stackable/stackable.php\";}' WHERE `option_name` = 'active_plugins'" );
+            // Activate WP Freighter
+            $wpdb->query( "UPDATE {$new_table_prefix}options set `option_value` = 'a:1:{i:0;s:23:\"wp-freighter/wp-freighter.php\";}' WHERE `option_name` = 'active_plugins'" );
 
             // Fix permissions
             $wpdb->query( "UPDATE {$new_table_prefix}options set `option_name` = 'stacked_{$stacked_site_id}_user_roles' WHERE `option_name` = '{$db_prefix}user_roles'" );
@@ -245,37 +245,37 @@ class Run {
         $label = ( $item['name'] ? "{$item['name']} - " : "" ) . wp_date( "M j, Y, g:i a", $item['created_at'] );
         if ( ! empty( $stacked_site_id ) ) {
             $admin_bar->add_menu( [
-                'id'    => 'stackable-mode',
+                'id'    => 'wp-freighter',
                 'title' => '<span class="ab-icon dashicons dashicons-welcome-view-site"></span> <span style="font-size: 0.8em !important;background-color: #fff;color: #000;padding: 1px 4px;border-radius: 2px;margin-left: 2px;position:relative;top:-2px">' . $label .'</span>',
-                'href'  => '/wp-admin/tools.php?page=stackable-mode',
+                'href'  => '/wp-admin/tools.php?page=wp-freighter',
             ] );
             $admin_bar->add_menu( [
-                'id'    => 'stackable-mode-exit',
-                'title' => '<span class="ab-icon dashicons dashicons-backup"></span>Exit Stackable Mode',
-                'href'  => '/wp-admin/admin-ajax.php?action=stacked_ajax&command=exitStackable',
+                'id'    => 'wp-freighter-exit',
+                'title' => '<span class="ab-icon dashicons dashicons-backup"></span>Exit WP Freighter',
+                'href'  => '/wp-admin/admin-ajax.php?action=stacked_ajax&command=exitWPFreighter',
             ] );
         }
         if ( empty( $stacked_site_id ) ) {
             $admin_bar->add_menu( [
-                'id'    => 'stackable-mode-enter',
+                'id'    => 'wp-freighter-enter',
                 'title' => '<span class="ab-icon dashicons dashicons-welcome-view-site"></span>View Stacked Sites',
-                'href'  => '/wp-admin/tools.php?page=stackable-mode',
+                'href'  => '/wp-admin/tools.php?page=wp-freighter',
             ] );
         }
     }
 
     public function admin_menu() {
         if ( current_user_can( 'manage_options' ) ) {
-            add_management_page( "Stackable Mode", "Stackable Mode", "manage_options", "stackable-mode", array( $this, 'admin_view' ) );
+            add_management_page( "WP Freighter", "WP Freighter", "manage_options", "wp-freighter", array( $this, 'admin_view' ) );
         }
     }
 
     public function admin_view() {
-        if ( false === ( $stackable_verify_license = get_transient( 'stackable_verify_license' ) ) ) {
-            set_transient( 'stackable_verify_license', "Verified Stackable license key.", 12 * HOUR_IN_SECONDS );
+        if ( false === ( $wp_freighter_verify_license = get_transient( 'wp_freighter_verify_license' ) ) ) {
+            set_transient( 'wp_freighter_verify_license', "Verified WP Freighter license key.", 12 * HOUR_IN_SECONDS );
             ( new Configurations )->verify_license();
         }
-        require_once plugin_dir_path( __DIR__ ) . '/templates/admin-stackable.php';
+        require_once plugin_dir_path( __DIR__ ) . '/templates/admin-wp-freighter.php';
     }
     
     public function activate() {
@@ -287,10 +287,10 @@ class Run {
             unlink ( $license_file );
         }
 
-        // Add default stackable configurations right after $table_prefix
+        // Add default configurations right after $table_prefix
         $lines_to_add = [
             '',
-            '/* Stackable Mode */',
+            '/* WP Freighter */',
             '$stacked_site_id = ( isset( $_COOKIE[ "stacked_site_id" ] ) ? $_COOKIE[ "stacked_site_id" ] : "" );',
             'if ( defined( \'WP_CLI\' ) && WP_CLI ) { $stacked_site_id = getenv( \'STACKED_SITE_ID\' ); }',
             'if ( ! empty( $stacked_site_id ) ) { define( \'TABLE_PREFIX\', $table_prefix ); $table_prefix = "stacked_{$stacked_site_id}_"; }',
@@ -312,9 +312,9 @@ class Run {
         $wp_config_content = file_get_contents( $wp_config_file );
         $working           = explode( "\n", $wp_config_content );
 
-        // Remove Stackable configs. Any lines containing '/* Stackable Mode */', 'stacked_site_id' and '$stacked_mappings'.
+        // Remove WP Freighter configs. Any lines containing '/* WP Freighter Mode */', 'stacked_site_id' and '$stacked_mappings'.
         foreach( $working as $key => $line ) {
-            if ( strpos( $line, '/* Stackable Mode */' ) !== false || strpos( $line, 'stacked_site_id' ) !== false || strpos( $line, '$stacked_mappings' ) !== false ) {
+            if ( strpos( $line, '/* WP Freighter */' ) !== false || strpos( $line, 'stacked_site_id' ) !== false || strpos( $line, '$stacked_mappings' ) !== false ) {
                 unset( $working[ $key ] );
             }
         }
@@ -372,9 +372,9 @@ class Run {
         $wp_config_content = file_get_contents( $wp_config_file );
         $working           = explode( "\n", $wp_config_content );
 
-        // Remove Stackable configs. Any lines containing '/* Stackable Mode */', 'stacked_site_id' and '$stacked_mappings'.
+        // Remove WP Freighter configs. Any lines containing '/* WP Freighter Mode */', 'stacked_site_id' and '$stacked_mappings'.
         foreach( $working as $key => $line ) {
-            if ( strpos( $line, '/* Stackable Mode */' ) !== false || strpos( $line, 'stacked_site_id' ) !== false || strpos( $line, '$stacked_mappings' ) !== false ) {
+            if ( strpos( $line, '/* WP Freighter */' ) !== false || strpos( $line, 'stacked_site_id' ) !== false || strpos( $line, '$stacked_mappings' ) !== false ) {
                 unset( $working[ $key ] );
             }
         }

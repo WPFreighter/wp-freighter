@@ -1,6 +1,6 @@
 <?php
 
-namespace StackableMode;
+namespace WPFreighter;
 
 class Sites {
 
