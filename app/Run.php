@@ -312,7 +312,7 @@ class Run {
         $wp_config_content = file_get_contents( $wp_config_file );
         $working           = explode( "\n", $wp_config_content );
 
-        // Remove WP Freighter configs. Any lines containing '/* WP Freighter Mode */', 'stacked_site_id' and '$stacked_mappings'.
+        // Remove WP Freighter configs. Any lines containing '/* WP Freighter */', 'stacked_site_id' and '$stacked_mappings'.
         foreach( $working as $key => $line ) {
             if ( strpos( $line, '/* WP Freighter */' ) !== false || strpos( $line, 'stacked_site_id' ) !== false || strpos( $line, '$stacked_mappings' ) !== false ) {
                 unset( $working[ $key ] );
@@ -372,7 +372,7 @@ class Run {
         $wp_config_content = file_get_contents( $wp_config_file );
         $working           = explode( "\n", $wp_config_content );
 
-        // Remove WP Freighter configs. Any lines containing '/* WP Freighter Mode */', 'stacked_site_id' and '$stacked_mappings'.
+        // Remove WP Freighter configs. Any lines containing '/* WP Freighter */', 'stacked_site_id' and '$stacked_mappings'.
         foreach( $working as $key => $line ) {
             if ( strpos( $line, '/* WP Freighter */' ) !== false || strpos( $line, 'stacked_site_id' ) !== false || strpos( $line, '$stacked_mappings' ) !== false ) {
                 unset( $working[ $key ] );

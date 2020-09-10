@@ -70,7 +70,7 @@ input[type=text]:focus {
             </v-alert>
             <v-card>
             <v-toolbar flat>
-                <v-toolbar-title>WP Freighter Mode</v-toolbar-title>
+                <v-toolbar-title>WP Freighter</v-toolbar-title>
                 <v-spacer></v-spacer>
                 <v-toolbar-items>
                     <v-dialog v-model="show_license" persistent max-width="600px">
