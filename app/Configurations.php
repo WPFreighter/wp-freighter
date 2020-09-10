@@ -194,22 +194,8 @@ class Configurations {
     }
 
     public function refresh_configs() {
-        if ( ! file_exists( ABSPATH . "wp-config.php" ) ) {
-            echo "Can not locate wp-config.php file";
-            return;
-        }
-        $wp_config_content = file_get_contents( ABSPATH . "wp-config.php" );
-        $working           = explode( "\n", $wp_config_content );
-        $lines_to_add      = [ '', '/* Stackable Mode */' ];
-        $stacked_sites     = ( new Sites )->get();
-        $configurations    = self::get();
 
-        // Remove Stackable configs. Any lines containing '/* Stackable Mode */', 'stacked_site_id' and '$stacked_mappings'.
-        foreach( $working as $key => $line ) {
-            if ( strpos( $line, '/* Stackable Mode */' ) !== false || strpos( $line, 'stacked_site_id' ) !== false || strpos( $line, '$stacked_mappings' ) !== false ) {
-                unset( $working[ $key ] );
-            }
-        }
+        $configurations    = self::get();
 
         if ( $configurations->domain_mapping == "on" && $configurations->files == "dedicated" ) {
             $domain_mapping = ( new Sites )->domain_mappings();
@@ -244,6 +230,31 @@ class Configurations {
             $lines_to_add[] = 'if ( ! empty( $stacked_site_id ) ) { define( \'TABLE_PREFIX\', $table_prefix ); $table_prefix = "stacked_{$stacked_site_id}_"; }';
         }
 
+        if ( file_exists( ABSPATH . "wp-config.php" ) ) {
+            $wp_config_file = ABSPATH . "wp-config.php";
+        }
+
+        if ( file_exists( dirname( ABSPATH ) . '/wp-config.php' ) ) {
+            $wp_config_file = dirname( ABSPATH ) . '/wp-config.php';
+        }
+
+        if ( empty ( $wp_config_file ) ) {
+            self::update_config( "unable_to_save", $lines_to_add );
+            return;
+        }
+
+        $wp_config_content = file_get_contents( $wp_config_file );
+        $working           = explode( "\n", $wp_config_content );
+        $lines_to_add      = [ '', '/* Stackable Mode */' ];
+        $stacked_sites     = ( new Sites )->get();
+
+        // Remove Stackable configs. Any lines containing '/* Stackable Mode */', 'stacked_site_id' and '$stacked_mappings'.
+        foreach( $working as $key => $line ) {
+            if ( strpos( $line, '/* Stackable Mode */' ) !== false || strpos( $line, 'stacked_site_id' ) !== false || strpos( $line, '$stacked_mappings' ) !== false ) {
+                unset( $working[ $key ] );
+            }
+        }
+
         // Add default stackable configurations right after $table_prefix
         foreach( $working as $key => $line ) {
             if ( strpos( $line, '$table_prefix' ) !== false ) {
@@ -261,11 +272,12 @@ class Configurations {
         $updated = array_merge( array_slice( $working, 0, $table_prefix_line + 1, true ), $lines_to_add, array_slice( $working, $table_prefix_line + 1, count( $working ), true ) );
 
         // Save changes to wp-config.php
-        $results = file_put_contents( ABSPATH . "wp-config.php", implode( "\n", $updated ) );
+        $results = file_put_contents( $wp_config_file, implode( "\n", $updated ) );
 
         if ( empty( $results ) ) {
             self::update_config( "unable_to_save", $lines_to_add );
         }
+
     }
 
 }
