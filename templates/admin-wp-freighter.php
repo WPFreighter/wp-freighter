@@ -122,6 +122,12 @@ input[type=text]:focus {
                         <v-form ref="form" v-model="new_site.valid">
                         <v-container>
                             <v-row>
+                            <v-col cols="12" sm="6" md="6" v-show="configurations.domain_mapping == 'off'">
+                                <v-text-field v-model="new_site.name" label="Label"></v-text-field>
+                            </v-col>
+                            <v-col cols="12" sm="6" md="6" v-show="configurations.domain_mapping == 'on'">
+                                <v-text-field v-model="new_site.domain" label="Domain"></v-text-field>
+                            </v-col>
                             <v-col cols="12" sm="6" md="6">
                                 <v-text-field v-model="new_site.title" label="Title*" :rules="[ value => !!value || 'Required.' ]"></v-text-field>
                             </v-col>
@@ -302,7 +308,7 @@ new Vue({
         response: "",
         show_license: false,
         configurations: <?php echo ( new WPFreighter\Configurations )->get_json(); ?>,
-        new_site: { title: "", email: "", username: "", password: "", show: false, valid: true },
+        new_site: { name: "", domain: "", title: "", email: "", username: "", password: "", show: false, valid: true },
         pending_changes: false,
         loading: false,
         stacked_sites: <?php echo ( new WPFreighter\Sites )->get_json(); ?>,
@@ -440,7 +446,7 @@ new Vue({
 				.then( response => {
                         this.stacked_sites = response.data
                         this.loading = false
-                        this.new_site = { title: "", email: "", username: "", password: "", show: false }
+                        this.new_site = { name: "", domain: "", title: "", email: "", username: "", password: "", show: false }
                     })
                     .catch( error => {
                         this.loading = false

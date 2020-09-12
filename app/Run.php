@@ -133,8 +133,8 @@ class Run {
             $stacked_sites[] = [
                 "stacked_site_id" => $stacked_site_id,
                 "created_at"      => strtotime("now"),
-                "name"            => "",
-                "domain"          => ""
+                "name"            => $new_site->name,
+                "domain"          => $new_site->domain
             ];
 
             $stacked_sites_serialize = serialize( $stacked_sites );
