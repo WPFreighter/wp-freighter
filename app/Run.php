@@ -147,16 +147,53 @@ class Run {
             }
             echo ( new Sites )->get_json();
 
+            ( new Configurations )->refresh_configs();
+
+            // Prepare new content folder if needed
+            if ( ( new Configurations )->get()->files == "dedicated" ) {
+                if ( ! file_exists( ABSPATH . "content/$stacked_site_id/" ) ) {
+                    mkdir( ABSPATH . "content/$stacked_site_id/themes/", 0777, true );
+                    mkdir( ABSPATH . "content/$stacked_site_id/plugins/", 0777, true );
+                    mkdir( ABSPATH . "content/$stacked_site_id/uploads/", 0777, true );
+                }
+            }
+
             // Install WordPress to new table prefix
             $table_prefix = $new_table_prefix;
             wp_set_wpdb_vars();
             wp_install( $new_site->title, $new_site->username, $new_site->email, true, '', wp_slash( $new_site->password ), "en" );
+
+            if ( ! empty ( $new_site->domain ) ) {
+                $wpdb->query("UPDATE stacked_{$stacked_site_id}_options set option_value = 'https://{$new_site->domain}' where option_name = 'siteurl'");
+                $wpdb->query("UPDATE stacked_{$stacked_site_id}_options set option_value = 'https://{$new_site->domain}' where option_name = 'home'");
+            }
 
             // Activate WP Freighter
             $wpdb->query( "UPDATE {$new_table_prefix}options set `option_value` = 'a:1:{i:0;s:23:\"wp-freighter/wp-freighter.php\";}' WHERE `option_name` = 'active_plugins'" );
 
             // Fix permissions
             $wpdb->query( "UPDATE {$new_table_prefix}options set `option_name` = 'stacked_{$stacked_site_id}_user_roles' WHERE `option_name` = '{$db_prefix}user_roles'" );
+
+            // Check if default theme is installed on new site
+            $default_theme_path = ABSPATH . "content/$stacked_site_id/themes/" . WP_DEFAULT_THEME ."/";
+            if ( ! file_exists( $default_theme_path ) ) {
+                require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+                include_once ABSPATH . 'wp-admin/includes/theme.php';
+                $skin     = new \WP_Ajax_Upgrader_Skin();
+                $upgrader = new \Theme_Upgrader( $skin );
+                $api      = themes_api( 'theme_information', [ 'slug'  => WP_DEFAULT_THEME, 'fields' => [ 'sections' => false ] ] );
+                $result   = $upgrader->run( [
+                        'package'           => $api->download_link,
+                        'destination'       => $default_theme_path,
+                        'clear_destination' => false,
+                        'clear_working'     => true,
+                        'hook_extra'        => [
+                            'type'   => 'theme',
+                            'action' => 'install',
+                        ],
+                    ] );
+            }
+
         }
 
         if ( $command == "cloneExisting" ) {
