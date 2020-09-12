@@ -105,10 +105,11 @@ class Run {
                     $wpdb->query( "DROP TABLE IF EXISTS $table" );
                 }
             }
-            echo json_encode( $stacked_sites );
+            echo ( new Sites )->get_json();
         }
 
         if ( $command == "newSite" ) {
+
             global $wpdb, $table_prefix;
             $db_prefix         = $wpdb->prefix;
             $db_prefix_primary = ( defined( 'TABLE_PREFIX' ) ? TABLE_PREFIX : $db_prefix );
@@ -144,7 +145,7 @@ class Run {
             } else {
                 $wpdb->query("UPDATE ${db_prefix_primary}options set option_value = '$stacked_sites_serialize' where option_name = 'stacked_sites'");
             }
-            echo json_encode( $stacked_sites );
+            echo ( new Sites )->get_json();
 
             // Install WordPress to new table prefix
             $table_prefix = $new_table_prefix;
@@ -206,7 +207,7 @@ class Run {
                 $wpdb->query("UPDATE ${db_prefix_primary}options set option_value = '$stacked_sites_serialize' where option_name = 'stacked_sites'");
             }
 
-            echo json_encode( $stacked_sites );
+            echo ( new Sites )->get_json();
         }
         wp_die();
         return;

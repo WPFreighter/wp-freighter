@@ -42,7 +42,7 @@ class Sites {
         if ( empty( $stacked_sites ) ) {
             $stacked_sites = [];
         }
-        return json_encode( $stacked_sites );
+        return json_encode( array_values( $stacked_sites ) );
     }
 
     public function update( $sites ) {
