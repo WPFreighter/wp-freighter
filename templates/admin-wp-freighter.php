@@ -69,6 +69,10 @@ input[type=text]:focus {
                
             </v-alert>
             <v-card>
+            <v-overlay absolute :value="loading" class="align-start">
+                <div style="height: 100px;"></div>
+                <v-progress-circular size="128" color="white" indeterminate class="mt-16"></v-progress-circular>
+            </v-overlay>
             <v-toolbar flat>
                 <v-toolbar-title>WP Freighter</v-toolbar-title>
                 <v-spacer></v-spacer>
@@ -300,6 +304,7 @@ new Vue({
         configurations: <?php echo ( new WPFreighter\Configurations )->get_json(); ?>,
         new_site: { title: "", email: "", username: "", password: "", show: false, valid: true },
         pending_changes: false,
+        loading: false,
         stacked_sites: <?php echo ( new WPFreighter\Sites )->get_json(); ?>,
         headers: [
           { text: '', value: 'stacked_site_id' },
@@ -424,6 +429,8 @@ new Vue({
             if ( ! proceed ) {
                 return
             }
+            this.loading = true
+            this.new_site.show = false
             var data = {
 				'action': 'stacked_ajax',
 				'command': "newSite",
@@ -432,9 +439,11 @@ new Vue({
 			axios.post( ajaxurl, Qs.stringify( data ) )
 				.then( response => {
                         this.stacked_sites = response.data
+                        this.loading = false
                         this.new_site = { title: "", email: "", username: "", password: "", show: false }
                     })
                     .catch( error => {
+                        this.loading = false
                         console.log( error )
                     });
         },
