@@ -205,7 +205,7 @@ class Configurations {
             }
             $lines_to_add[] = 'if ( isset( $_SERVER[\'HTTP_HOST\'] ) && in_array( $_SERVER[\'HTTP_HOST\'], $stacked_mappings ) ) { foreach( $stacked_mappings as $key => $stacked_mapping ) { if ( $stacked_mapping == $_SERVER[\'HTTP_HOST\'] ) { $stacked_site_id = $key; continue; } } }';
             $lines_to_add[] = 'if ( defined( \'WP_CLI\' ) && WP_CLI ) { $stacked_site_id = getenv( \'STACKED_SITE_ID\' ); }';
-            $lines_to_add[] = 'if ( ! empty( $stacked_site_id ) && ! empty ( $stacked_mappings[ $stacked_site_id ] ) ) { define( \'TABLE_PREFIX\', $table_prefix ); $stacked_home = $stacked_mappings[ $stacked_site_id ]; $table_prefix = "stacked_{$stacked_site_id}_"; define( \'WP_CONTENT_URL\', "//${stacked_home}/content/{$stacked_site_id}" ); define( \'WP_CONTENT_DIR\', dirname(__FILE__) . "/content/{$stacked_site_id}" ); }';
+            $lines_to_add[] = 'if ( ! empty( $stacked_site_id ) && ! empty ( $stacked_mappings[ $stacked_site_id ] ) ) { define( \'TABLE_PREFIX\', $table_prefix ); $stacked_home = $stacked_mappings[ $stacked_site_id ]; $table_prefix = "stacked_{$stacked_site_id}_"; define( \'WP_CONTENT_URL\', "//${stacked_home}/content/{$stacked_site_id}" ); define( \'WP_CONTENT_DIR\', ABSPATH . "content/{$stacked_site_id}" ); }';
         }
 
         if ( $configurations->domain_mapping == "off" && $configurations->files == "dedicated" ) {
@@ -214,7 +214,7 @@ class Configurations {
             $site_url       = str_replace( "http://", "", $site_url );
             $lines_to_add[] = '$stacked_site_id = ( isset( $_COOKIE[ "stacked_site_id" ] ) ? $_COOKIE[ "stacked_site_id" ] : "" );';
             $lines_to_add[] = 'if ( defined( \'WP_CLI\' ) && WP_CLI ) { $stacked_site_id = getenv( \'STACKED_SITE_ID\' ); }';
-            $lines_to_add[] = 'if ( ! empty( $stacked_site_id ) ) { define( \'TABLE_PREFIX\', $table_prefix ); $table_prefix = "stacked_{$stacked_site_id}_"; define( \'WP_CONTENT_URL\', "//'. $site_url .'/content/{$stacked_site_id}" ); define( \'WP_CONTENT_DIR\', dirname(__FILE__) . "/content/{$stacked_site_id}" ); }';
+            $lines_to_add[] = 'if ( ! empty( $stacked_site_id ) ) { define( \'TABLE_PREFIX\', $table_prefix ); $table_prefix = "stacked_{$stacked_site_id}_"; define( \'WP_CONTENT_URL\', "//'. $site_url .'/content/{$stacked_site_id}" ); define( \'WP_CONTENT_DIR\', ABSPATH . "content/{$stacked_site_id}" ); }';
         }
 
         if ( $configurations->domain_mapping == "on" && $configurations->files == "shared" ) {
