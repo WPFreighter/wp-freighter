@@ -248,7 +248,6 @@ class Configurations {
 
         $wp_config_content = file_get_contents( $wp_config_file );
         $working           = explode( "\n", $wp_config_content );
-        $stacked_sites     = ( new Sites )->get();
 
         // Remove WP Freighter configs. Any lines containing '/* WP Freighter */', 'stacked_site_id' and '$stacked_mappings'.
         foreach( $working as $key => $line ) {
