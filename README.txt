@@ -27,8 +27,17 @@ If your web host providers allows modifications to `wp-config.php` then WP Freig
 
 == Changelog ==
 
+
+= 1.0.1 = 
+* Feature: Will automatically install default theme when creating new sites if needed.
+* Improvement: Shows overlay loader while new sites are installing.
+* Improvement: Added fields for domain or label on the new site dialog.
+* Improvement: Compatibility for alternative wp-config.php location.
+* Improvement: Force HTTPS in urls.
+* Fixed: Inconsistent response of sites array.
+
 = 1.0 =
-* Inital release of WP Freighter. Ability to add or remove stacked sites with database prefix `stacked_#_`.
+* Initial release of WP Freighter. Ability to add or remove stacked sites with database prefix `stacked_#_`.
 * Feature: Clone existing site to new database prefix
 * Feature: Add new empty site to new database prefix
 * Feature: Domain mapping off or on

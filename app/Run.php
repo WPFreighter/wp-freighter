@@ -24,7 +24,7 @@ class Run {
         $license_key = ( new Configurations() )->license_key();
         $plugin_file = plugin_dir_path( __DIR__ ) . "wp-freighter.php";
         new Updater( WP_FREIGHTER_EDD_SL_STORE_URL, $plugin_file, [
-            'version' => '1.0.0',
+            'version' => '1.0.1',
             'license' => $license_key,
             'item_id' => WP_FREIGHTER_EDD_SL_ITEM_ID,
             'author'  => 'Austin Ginder',
@@ -366,6 +366,15 @@ class Run {
             }
             if ( substr( $line, 0, 19 ) === $compare_site_url ) {
                 $working[ $key ] = "//$line";
+            }
+        }
+
+        // Append WP_CACHE_KEY_SALT with unique identifier if found
+        foreach( $working as $key => $line ) {
+            $wp_cache_key_salt = "define('WP_CACHE_KEY_SALT', '";
+            if ( substr( $line, 0, 29 ) === $wp_cache_key_salt ) {
+                $updated_line    = str_replace( "define('WP_CACHE_KEY_SALT', '", "define('WP_CACHE_KEY_SALT', \$stacked_site_id . '", $line );
+                $working[ $key ] = $updated_line;
             }
         }
 
