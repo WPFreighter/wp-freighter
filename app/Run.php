@@ -75,8 +75,8 @@ class Run {
 
         if ( $command == "saveConfigurations" ) {
             $value = (object) $value;
-            ( new Configurations )->update( $value->configurations );
             ( new Sites )->update( $value->sites );
+            ( new Configurations )->update( $value->configurations );
             echo json_encode( ( new Configurations )->get() );
         }
 
