@@ -44,7 +44,7 @@ class Run {
         $value         = $_POST['value'];
         $stacked_sites = ( new Sites )->get();
 
-        if ( $_GET['command'] == "exitWPFreighter" ) {
+        if ( isset( $_GET['command'] ) && $_GET['command'] == "exitWPFreighter" ) {
             setcookie( 'stacked_site_id', null, -1, '/');
             unset( $_COOKIE[ "stacked_site_id" ] );
             wp_redirect( $_SERVER['HTTP_REFERER'] );

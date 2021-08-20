@@ -265,7 +265,7 @@ class Configurations {
         }
 
         // Remove extra line space if found.
-        if ( $working[ $table_prefix_line + 1 ] == "" && $working[ $table_prefix_line + 2 ] == "" ) {
+        if ( empty( $working[ $table_prefix_line + 1 ] ) && empty( $working[ $table_prefix_line + 2 ] ) ) {
             unset( $working[ $table_prefix_line + 1 ] );
         }
 
