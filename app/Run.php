@@ -24,7 +24,7 @@ class Run {
         $license_key = ( new Configurations() )->license_key();
         $plugin_file = plugin_dir_path( __DIR__ ) . "wp-freighter.php";
         new Updater( WP_FREIGHTER_EDD_SL_STORE_URL, $plugin_file, [
-            'version' => '1.0.1',
+            'version' => '1.0.2',
             'license' => $license_key,
             'item_id' => WP_FREIGHTER_EDD_SL_ITEM_ID,
             'author'  => 'Austin Ginder',

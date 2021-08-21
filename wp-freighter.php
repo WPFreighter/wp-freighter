@@ -11,7 +11,7 @@
  * Plugin Name:       WP Freighter
  * Plugin URI:        https://wpfreighter.com
  * Description:       Efficiently run many WordPress sies from a single WordPress installation.
- * Version:           1.0.1
+ * Version:           1.0.2
  * Author:            Austin Ginder
  * Author URI:        https://austinginder.com
  * License:           MIT

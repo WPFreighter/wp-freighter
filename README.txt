@@ -35,6 +35,10 @@ WP Freighter makes minimal changes to wp-config.php in order to allow for many W
 
 == Changelog ==
 
+= 1.0.2 = 
+* Fixed: Bad logic where configurations weren't always regenerated after sites changed.
+* Fixed: Various PHP warnings.
+
 = 1.0.1 = 
 * Feature: Will automatically install default theme when creating new sites if needed.
 * Improvement: Shows overlay loader while new sites are installing.
