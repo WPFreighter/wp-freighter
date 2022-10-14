@@ -6,31 +6,16 @@ class Run {
 
     public function __construct() {
         if ( defined( 'WP_FREIGHTER_DEV_MODE' ) ) {
-            add_filter('edd_sl_api_request_verify_ssl', '__return_false');
             add_filter('https_ssl_verify', '__return_false');
             add_filter('https_local_ssl_verify', '__return_false');
             add_filter('http_request_host_is_external', '__return_true');
-            define( 'WP_FREIGHTER_EDD_SL_STORE_URL', 'https://wpfreighter.test' );
-            define( 'WP_FREIGHTER_EDD_SL_ITEM_ID', 44 );
-        } else {
-            define( 'WP_FREIGHTER_EDD_SL_STORE_URL', 'https://wpfreighter.com' );
-            define( 'WP_FREIGHTER_EDD_SL_ITEM_ID', 74 );
         }
         add_action( 'wp_ajax_stacked_ajax', [ $this, 'ajax_actions' ] );
         add_action( 'admin_bar_menu', [ $this, 'admin_toolbar' ], 100 );
         add_action( 'admin_menu', [ $this, 'admin_menu' ] );
         register_activation_hook( plugin_dir_path( __DIR__ ) . "wp-freighter.php", [ $this, 'activate' ] );
         register_deactivation_hook( plugin_dir_path( __DIR__ ) . "wp-freighter.php", [ $this, 'deactivate' ] );
-        $license_key = ( new Configurations() )->license_key();
-        $plugin_file = plugin_dir_path( __DIR__ ) . "wp-freighter.php";
-        new Updater( WP_FREIGHTER_EDD_SL_STORE_URL, $plugin_file, [
-            'version' => '1.0.2',
-            'license' => $license_key,
-            'item_id' => WP_FREIGHTER_EDD_SL_ITEM_ID,
-            'author'  => 'Austin Ginder',
-            'url'     => home_url(),
-            'beta'    => false
-         ] );
+        $plugin_file = dirname ( plugin_basename( __DIR__ ) ) . "/wp-freighter.php" ;
     }
 
     public function ajax_actions() {
@@ -56,21 +41,6 @@ class Run {
                 $stacked_sites = [];
             }
             echo json_encode( $stacked_sites );
-        }
-
-        if ( $command == "activateLicense" ) {
-            ( new Configurations )->activate_license( $value );
-            echo json_encode( ( new Configurations )->get() );
-        }
-
-        if ( $command == "verifyLicense" ) {
-            $key = ( new Configurations )->license_key();
-            if ( $key != $value ) {
-                ( new Configurations )->activate_license( $value );
-            } else {
-                ( new Configurations )->verify_license();
-            }
-            echo json_encode( ( new Configurations )->get() );
         }
 
         if ( $command == "saveConfigurations" ) {
@@ -309,21 +279,10 @@ class Run {
     }
 
     public function admin_view() {
-        if ( false === ( $wp_freighter_verify_license = get_transient( 'wp_freighter_verify_license' ) ) ) {
-            set_transient( 'wp_freighter_verify_license', "Verified WP Freighter license key.", 12 * HOUR_IN_SECONDS );
-            ( new Configurations )->verify_license();
-        }
         require_once plugin_dir_path( __DIR__ ) . '/templates/admin-wp-freighter.php';
     }
     
     public function activate() {
-
-        $license_file = plugin_dir_path( __DIR__ ) . "purchased_license.php";
-        if ( file_exists ( $license_file ) ) {
-            $license_key = file_get_contents ( $license_file );
-            ( new Configurations )->activate_license( $license_key );
-            unlink ( $license_file );
-        }
 
         // Add default configurations right after $table_prefix
         $lines_to_add = [

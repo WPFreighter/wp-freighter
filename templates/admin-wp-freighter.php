@@ -39,35 +39,6 @@ input[type=text]:focus {
       <v-layout>
         <v-row>
         <v-col x12 class="mr-4 mt-4">
-            <v-alert type="error" outlined class="mb-5" style="background-color:#ffffff !important;margin:auto;max-width:560px;" v-show="configurations.license_status != 'valid'">
-                <div v-if="configurations.license_status == 'expired'">
-                    License has expired on {{ pretty_timestamp_mysql( configurations.license_expires ) }}. Plugin will not receive updates without an active subscription. Verify your account status here: <a href="https://wpfreighter.com/my-account/" target="_blank">wpfreighter.com/my-account</a>.<br /><br />
-                    <v-row align="center">
-                    <v-col class="grow py-0">
-                        <v-text-field label="License Key" v-model="configurations.license_key"></v-text-field>
-                    </v-col>
-                    <v-col class="shrink py-0">
-                    <v-btn color="primary" small @click="verifyLicense()">
-                        Verify License
-                    </v-btn>
-                    </v-col>
-                </v-row>
-                </div>
-                <div v-else>
-                    {{ configurations.license_response || "License key missing." }} Plugin will not receive updates without an active subscription.
-                    <v-row align="center">
-                    <v-col class="grow py-0">
-                        <v-text-field label="License Key" v-model="configurations.license_key"></v-text-field>
-                    </v-col>
-                    <v-col class="shrink py-0">
-                    <v-btn color="primary" small @click="activateLicense()">
-                        Activate License
-                    </v-btn>
-                    </v-col>
-                </v-row>
-                </div>
-               
-            </v-alert>
             <v-card>
             <v-overlay absolute :value="loading" class="align-start">
                 <div style="height: 100px;"></div>
@@ -77,40 +48,6 @@ input[type=text]:focus {
                 <v-toolbar-title>WP Freighter</v-toolbar-title>
                 <v-spacer></v-spacer>
                 <v-toolbar-items>
-                    <v-dialog v-model="show_license" persistent max-width="600px">
-                    <template v-slot:activator="{ on, attrs }">
-                        <v-btn small text v-on="on" v-show="configurations.license_status == 'valid'"><v-icon>mdi-key</v-icon> License Activated</v-btn>
-                    </template>
-                    <v-card>
-                        <v-toolbar flat>
-                            <v-toolbar-title>License Information</v-toolbar-title>
-                            <v-spacer></v-spacer>
-                            <div v-if="configurations.license_expires != 'lifetime'">
-                            Valid through {{ pretty_timestamp_mysql( configurations.license_expires ) }}
-                            </div>
-                            <div v-else>
-                            Liftetime License
-                            </div>
-                        </v-toolbar>
-                        <v-card-text>
-                        <v-form ref="form">
-                        <v-container>
-                            <v-row>
-                            <v-col cols="12">
-                                <v-text-field v-model="configurations.license_key" label="License Key*" :rules="[ value => !!value || 'Required.' ]"></v-text-field>
-                            </v-col>
-                            </v-row>
-                        </v-container>
-                        <small>*indicates required field</small>
-                        </v-form>
-                        </v-card-text>
-                        <v-card-actions>
-                        <v-spacer></v-spacer>
-                            <v-btn color="primary" text @click="show_license = false">Close</v-btn>
-                            <v-btn color="primary" text @click="activateLicense()">Update License</v-btn>
-                        </v-card-actions>
-                    </v-card>
-                    </v-dialog>
                     <v-btn small text @click="cloneExisting()"><v-icon>mdi-content-copy</v-icon> Clone current site</v-btn>
                     <v-dialog v-model="new_site.show" persistent max-width="600px">
                     <template v-slot:activator="{ on, attrs }">
@@ -306,7 +243,6 @@ new Vue({
 	}),
     data: {
         response: "",
-        show_license: false,
         configurations: <?php echo ( new WPFreighter\Configurations )->get_json(); ?>,
         new_site: { name: "", domain: "", title: "", email: "", username: "", password: "", show: false, valid: true },
         pending_changes: false,
@@ -362,34 +298,6 @@ new Vue({
 			axios.post( ajaxurl, Qs.stringify( data ) )
 				.then( response => {
                         this.stacked_sites = response.data
-                    })
-                    .catch( error => {
-                        console.log( error )
-                    });
-        },
-        activateLicense() {
-            var data = {
-				'action': 'stacked_ajax',
-				'command': "activateLicense",
-                'value': this.configurations.license_key,
-			}
-			axios.post( ajaxurl, Qs.stringify( data ) )
-				.then( response => {
-                        location.reload()
-                    })
-                    .catch( error => {
-                        console.log( error )
-                    });
-        },
-        verifyLicense() {
-            var data = {
-				'action': 'stacked_ajax',
-				'command': "verifyLicense",
-                'value': this.configurations.license_key,
-			}
-			axios.post( ajaxurl, Qs.stringify( data ) )
-				.then( response => {
-                        location.reload()
                     })
                     .catch( error => {
                         console.log( error )
