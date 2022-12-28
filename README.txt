@@ -2,8 +2,8 @@
 Contributors: austinginder
 Donate link: https://austinginder.com
 Tags: multitenancy, multi-tenant, domain-mapping
-Requires at least: 3.0.1
-Tested up to: 5.5.1
+Requires at least: 5.6
+Tested up to: 6.1
 Stable tag: 1.0
 License: MIT
 License URI: https://opensource.org/licenses/MIT
@@ -34,6 +34,10 @@ In order for WP Freighter to work, it needs to modify the wp-config.php file. Th
 WP Freighter makes minimal changes to wp-config.php in order to allow for many WordPress sites on a single WordPress installation. Unfortunately that means root level files are shared between all sites. If root level files are needed I recommend coping files from the root / to /content/<stacked-id>/ and configure Redirection plugin to handle the redirection.
 
 == Changelog ==
+
+= 1.1 = 
+* Feature: Free for everyone. Removed EDD intergration. Automatic updates integrated with Github release.
+* Improvement: Add settings link to plugin page.
 
 = 1.0.2 = 
 * Fixed: Bad logic where configurations weren't always regenerated after sites changed.

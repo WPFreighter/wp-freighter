@@ -10,8 +10,8 @@
  * @wordpress-plugin
  * Plugin Name:       WP Freighter
  * Plugin URI:        https://wpfreighter.com
- * Description:       Efficiently run many WordPress sies from a single WordPress installation.
- * Version:           1.0.2
+ * Description:       Multi-tenant mode for WordPress
+ * Version:           1.1
  * Author:            Austin Ginder
  * Author URI:        https://austinginder.com
  * License:           MIT
@@ -27,3 +27,4 @@ if ( ! defined( 'WPINC' ) ) {
 
 require plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
 new WPFreighter\Run();
+new WPFreighter\Updater();
