@@ -36,7 +36,7 @@ WP Freighter makes minimal changes to wp-config.php in order to allow for many W
 == Changelog ==
 
 = 1.1 = 
-* Feature: Free for everyone. Removed EDD intergration. Automatic updates integrated with Github release.
+* Feature: Free for everyone. Removed EDD integration. Automatic updates integrated with Github release.
 * Improvement: Add settings link to plugin page.
 
 = 1.0.2 = 
