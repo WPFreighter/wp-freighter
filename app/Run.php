@@ -16,6 +16,14 @@ class Run {
         register_activation_hook( plugin_dir_path( __DIR__ ) . "wp-freighter.php", [ $this, 'activate' ] );
         register_deactivation_hook( plugin_dir_path( __DIR__ ) . "wp-freighter.php", [ $this, 'deactivate' ] );
         $plugin_file = dirname ( plugin_basename( __DIR__ ) ) . "/wp-freighter.php" ;
+        add_filter( "plugin_action_links_{$plugin_file}", [ $this, 'settings_link' ] );
+    }
+
+    public function settings_link( $links ) {
+        $settings_link = "<a href='/wp-admin/tools.php?page=wp-freighter'>" . __( 'Settings' ) . "</a>";
+        // Adds the link to the end of the array.
+        array_unshift( $links, $settings_link );
+        return $links;
     }
 
     public function ajax_actions() {
