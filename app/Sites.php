@@ -17,7 +17,8 @@ class Sites {
         }
 
         $this->db_prefix_primary = $db_prefix_primary;
-        $stacked_sites           = maybe_unserialize( $wpdb->get_results("select option_value from {$db_prefix_primary}options where option_name = 'stacked_sites'")[0]->option_value );
+        $stacked_sites           = $wpdb->get_results("select option_value from {$db_prefix_primary}options where option_name = 'stacked_sites'");
+        $stacked_sites           = empty( $stacked_sites ) ? "" : maybe_unserialize( $stacked_sites[0]->option_value );
         if ( empty( $stacked_sites ) ) {
             $stacked_sites = [];
         }

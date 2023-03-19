@@ -15,7 +15,8 @@ class Configurations {
             $db_prefix_primary = $db_prefix;
         }
         $this->db_prefix_primary = $db_prefix_primary;
-        $configurations          = maybe_unserialize( $wpdb->get_results("select option_value from {$this->db_prefix_primary}options where option_name = 'stacked_configurations'")[0]->option_value );
+        $configurations = $wpdb->get_results("select option_value from {$this->db_prefix_primary}options where option_name = 'stacked_configurations'");
+        $configurations = empty ( $configurations ) ? "" : maybe_unserialize( $configurations[0]->option_value );
         if ( empty( $configurations ) ) {
             $configurations      = [ 
                 "files"          => "shared", 

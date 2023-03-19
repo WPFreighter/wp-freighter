@@ -33,8 +33,8 @@ class Run {
         if ( $db_prefix_primary == "TABLE_PREFIX" ) { 
             $db_prefix_primary = $db_prefix;
         }
-        $command       = $_POST['command'];
-        $value         = $_POST['value'];
+        $command       = empty( $_POST['command'] ) ? "" : $_POST['command'];
+        $value         = empty( $_POST['value'] ) ? "" : $_POST['value'];
         $stacked_sites = ( new Sites )->get();
 
         if ( isset( $_GET['command'] ) && $_GET['command'] == "exitWPFreighter" ) {
@@ -183,9 +183,11 @@ class Run {
             }
             $stacked_sites       = ( new Sites )->get();
             $current_stacked_ids = array_column( $stacked_sites, "stacked_site_id" );
-            $stacked_site_id     = ( is_array( $current_stacked_ids ) ? max( $current_stacked_ids ) + 1 : 1 );
+            $stacked_site_id     = ( empty( $current_stacked_ids ) ? 1 : (int) max( $current_stacked_ids ) + 1 );
             $tables              = array_column( $wpdb->get_results("show tables"), "Tables_in_". DB_NAME );
+            // Scan through all table tables
             foreach ( $tables as $table ) {
+                // Duplicate only required tables
                 if ( substr( $table, 0, strlen( $db_prefix ) ) != $db_prefix ) {
                     continue;
                 }
@@ -209,11 +211,6 @@ class Run {
                 "domain"          => ""
             ];
 
-            foreach ( $tables as $table ) {
-                if ( strpos( $table, $string ) !== FALSE) {
-                    $wpdb->query( "UPDATE $table set `option_name` = 'stacked_sites' WHERE `option_name` = '{$db_prefix}user_roles'" );
-                }
-            }
             $stacked_sites_serialize = serialize( $stacked_sites );
             $results                 = $wpdb->get_results("select option_id from ${db_prefix_primary}options where option_name = 'stacked_sites'");
             if ( empty( $results ) ) {
@@ -251,15 +248,16 @@ class Run {
             return;
         }
         $stacked_sites   = ( new Sites )->get();
-        $stacked_site_id = $_COOKIE[ "stacked_site_id" ];
+        $stacked_site_id = empty ( $_COOKIE[ "stacked_site_id" ] ) ? "" : $_COOKIE[ "stacked_site_id" ];
         foreach( $stacked_sites as $stacked_site ) {
             if ( $stacked_site_id == $stacked_site['stacked_site_id'] ) {
                 $item = $stacked_site;
                 break;
             }
         }
-        $label = ( $item['name'] ? "{$item['name']} - " : "" ) . wp_date( "M j, Y, g:i a", $item['created_at'] );
+        
         if ( ! empty( $stacked_site_id ) ) {
+            $label = ( $item['name'] ? "{$item['name']} - " : "" ) . wp_date( "M j, Y, g:i a", $item['created_at'] );
             $admin_bar->add_menu( [
                 'id'    => 'wp-freighter',
                 'title' => '<span class="ab-icon dashicons dashicons-welcome-view-site"></span> <span style="font-size: 0.8em !important;background-color: #fff;color: #000;padding: 1px 4px;border-radius: 2px;margin-left: 2px;position:relative;top:-2px">' . $label .'</span>',
