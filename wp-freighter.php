@@ -11,7 +11,7 @@
  * Plugin Name:       WP Freighter
  * Plugin URI:        https://wpfreighter.com
  * Description:       Multi-tenant mode for WordPress
- * Version:           1.1
+ * Version:           1.1.1
  * Author:            Austin Ginder
  * Author URI:        https://austinginder.com
  * License:           MIT

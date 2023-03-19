@@ -35,6 +35,9 @@ WP Freighter makes minimal changes to wp-config.php in order to allow for many W
 
 == Changelog ==
 
+= 1.1.1 = 
+* Fixed: PHP 8 issues
+
 = 1.1 = 
 * Feature: Free for everyone. Removed EDD integration. Automatic updates integrated with Github release.
 * Improvement: Add settings link to plugin page.
