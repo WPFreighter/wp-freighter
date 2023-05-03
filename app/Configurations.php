@@ -82,6 +82,7 @@ class Configurations {
 
         if ( $configurations->domain_mapping == "on" && $configurations->files == "dedicated" ) {
             $domain_mapping = ( new Sites )->domain_mappings();
+            $lines_to_add[] = '$stacked_mappings = [];';
             foreach ( $domain_mapping as $key => $domain ) {
                 $lines_to_add[] = '$stacked_mappings['.$key.'] = \''.$domain.'\';';
             }
@@ -101,6 +102,7 @@ class Configurations {
 
         if ( $configurations->domain_mapping == "on" && $configurations->files == "shared" ) {
             $domain_mapping = ( new Sites )->domain_mappings();
+            $lines_to_add[] = '$stacked_mappings = [];';
             foreach ( $domain_mapping as $key => $domain ) {
                 $lines_to_add[] = '$stacked_mappings['.$key.'] = \''.$domain.'\';';
             }
