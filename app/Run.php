@@ -100,7 +100,7 @@ class Run {
             $new_site            = (object) $value;
             $stacked_sites       = ( new Sites )->get();
             $current_stacked_ids = array_column( $stacked_sites, "stacked_site_id" );
-            $stacked_site_id     = ( is_array( $current_stacked_ids ) ? max( $current_stacked_ids ) + 1 : 1 );
+            $stacked_site_id     = ( empty( $current_stacked_ids ) ? 1 : (int) max( $current_stacked_ids ) + 1 );
             $new_table_prefix    = "stacked_{$stacked_site_id}_";
             $tables              = array_column( $wpdb->get_results("show tables"), "Tables_in_". DB_NAME );
             foreach ( $tables as $table ) {
