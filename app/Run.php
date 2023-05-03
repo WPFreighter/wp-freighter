@@ -220,6 +220,25 @@ class Run {
             }
 
             echo ( new Sites )->get_json();
+            // Prepare new content folder if needed
+            if ( ( new Configurations )->get()->files == "dedicated" ) {
+                if ( ! file_exists( ABSPATH . "content/$stacked_site_id/" ) ) {
+                    mkdir( ABSPATH . "content/$stacked_site_id/", 0777, true );
+                    $source = ABSPATH . "wp-content/";
+                    $dest   = ABSPATH . "content/$stacked_site_id/";
+                    foreach (
+                        $iterator = new \RecursiveIteratorIterator(
+                         new \RecursiveDirectoryIterator($source, \RecursiveDirectoryIterator::SKIP_DOTS),
+                         \RecursiveIteratorIterator::SELF_FIRST) as $item
+                       ) {
+                         if ($item->isDir()) {
+                           mkdir($dest . DIRECTORY_SEPARATOR . $iterator->getSubPathname());
+                         } else {
+                           copy($item, $dest . DIRECTORY_SEPARATOR . $iterator->getSubPathname());
+                         }
+                       }
+                }
+            }
         }
         wp_die();
         return;
