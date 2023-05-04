@@ -35,6 +35,11 @@ WP Freighter makes minimal changes to wp-config.php in order to allow for many W
 
 == Changelog ==
 
+= 1.1.2 = 
+* Fixed: PHP 8 warnings and errors
+* Improvement: Site cloning will copy current source content folder over to new /content/<id>/
+* Improvement: Refresh WP Freighter configs on plugin update
+
 = 1.1.1 = 
 * Fixed: PHP 8 issues
 
