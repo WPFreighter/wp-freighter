@@ -176,6 +176,7 @@ class Run {
 
         if ( $command == "cloneExisting" ) {
             global $wpdb, $table_prefix;
+            $source            = WP_CONTENT_DIR;
             $db_prefix         = $wpdb->prefix;
             $db_prefix_primary = ( defined( 'TABLE_PREFIX' ) ? TABLE_PREFIX : $db_prefix );
             if ( $db_prefix_primary == "TABLE_PREFIX" ) { 
@@ -224,8 +225,7 @@ class Run {
             if ( ( new Configurations )->get()->files == "dedicated" ) {
                 if ( ! file_exists( ABSPATH . "content/$stacked_site_id/" ) ) {
                     mkdir( ABSPATH . "content/$stacked_site_id/", 0777, true );
-                    $source = ABSPATH . "wp-content/";
-                    $dest   = ABSPATH . "content/$stacked_site_id/";
+                    $dest   = ABSPATH . "content/$stacked_site_id";
                     foreach (
                         $iterator = new \RecursiveIteratorIterator(
                          new \RecursiveDirectoryIterator($source, \RecursiveDirectoryIterator::SKIP_DOTS),
