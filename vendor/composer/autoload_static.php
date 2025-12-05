@@ -7,20 +7,22 @@ namespace Composer\Autoload;
 class ComposerStaticInit68be0100d7d9e80e822c421ddd2b7c98
 {
     public static $prefixLengthsPsr4 = array (
-        'S' => 
+        'W' =>
         array (
-            'WPFreighter\\' => 14,
+            'WPFreighter\\' => 12,
         ),
     );
 
     public static $prefixDirsPsr4 = array (
-        'WPFreighter\\' => 
+        'WPFreighter\\' =>
         array (
             0 => __DIR__ . '/../..' . '/app',
         ),
     );
 
     public static $classMap = array (
+        'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
+        'WPFreighter\\CLI' => __DIR__ . '/../..' . '/app/CLI.php',
         'WPFreighter\\Configurations' => __DIR__ . '/../..' . '/app/Configurations.php',
         'WPFreighter\\Run' => __DIR__ . '/../..' . '/app/Run.php',
         'WPFreighter\\Sites' => __DIR__ . '/../..' . '/app/Sites.php',
