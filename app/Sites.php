@@ -142,4 +142,34 @@ class Sites {
         return rmdir( $dir );
     }
 
+    public static function copy_recursive( $source, $dest ) {
+        if ( ! file_exists( $source ) ) {
+            return;
+        }
+        if ( ! file_exists( $dest ) ) {
+            mkdir( $dest, 0777, true );
+        }
+        
+        foreach (
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator( $source, \RecursiveDirectoryIterator::SKIP_DOTS ),
+                \RecursiveIteratorIterator::SELF_FIRST
+            ) as $item
+        ) {
+            $subPathName      = $iterator->getSubPathname();
+            $destination_file = $dest . DIRECTORY_SEPARATOR . $subPathName;
+
+            if ( $item->isLink() ) {
+                $target = readlink( $item->getPathname() );
+                @symlink( $target, $destination_file );
+            } elseif ( $item->isDir() ) {
+                if ( ! file_exists( $destination_file ) ) {
+                    mkdir( $destination_file );
+                }
+            } else {
+                copy( $item, $destination_file );
+            }
+        }
+    }
+
 }

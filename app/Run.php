@@ -212,6 +212,9 @@ class Run {
                 mkdir( ABSPATH . "content/$stacked_site_id/themes/", 0777, true );
                 mkdir( ABSPATH . "content/$stacked_site_id/plugins/", 0777, true );
                 mkdir( ABSPATH . "content/$stacked_site_id/uploads/", 0777, true );
+
+                // Kinsta Compatibility
+                $this->copy_kinsta_assets( $stacked_site_id );
             }
         }
 
@@ -379,6 +382,9 @@ class Run {
                             copy( $item, $destination_file );
                         }
                     }
+
+                    // Kinsta Compatibility (Ensures they are copied even if cloning a sub-site that lacked them)
+                    $this->copy_kinsta_assets( $stacked_site_id );
                 }
             }
         }
@@ -392,6 +398,33 @@ class Run {
         ( new Configurations )->refresh_configs();
 
         return array_values($stacked_sites);
+    }
+
+    private function copy_kinsta_assets( $stacked_site_id ) {
+        // Only run if using dedicated files
+        if ( ( new Configurations )->get()->files != "dedicated" ) {
+            return;
+        }
+
+        // Hardcoded Source: Always pull from the Main Site root
+        $mu_plugins_source = ABSPATH . 'wp-content/mu-plugins';
+        $mu_plugins_dest   = ABSPATH . "content/$stacked_site_id/mu-plugins";
+
+        // 1. Copy kinsta-mu-plugins.php
+        if ( file_exists( "$mu_plugins_source/kinsta-mu-plugins.php" ) ) {
+            if ( ! file_exists( $mu_plugins_dest ) ) {
+                mkdir( $mu_plugins_dest, 0777, true );
+            }
+            copy( "$mu_plugins_source/kinsta-mu-plugins.php", "$mu_plugins_dest/kinsta-mu-plugins.php" );
+        }
+
+        // 2. Copy kinsta-mu-plugins/ directory
+        if ( file_exists( "$mu_plugins_source/kinsta-mu-plugins" ) ) {
+            if ( ! file_exists( $mu_plugins_dest ) ) {
+                mkdir( $mu_plugins_dest, 0777, true );
+            }
+            Sites::copy_recursive( "$mu_plugins_source/kinsta-mu-plugins", "$mu_plugins_dest/kinsta-mu-plugins" );
+        }
     }
 
     // Helper to abstract the primary prefix logic used in multiple places
