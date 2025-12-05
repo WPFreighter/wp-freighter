@@ -140,6 +140,8 @@ class Run {
                 $wpdb->query( "DROP TABLE IF EXISTS $table" );
             }
         }
+
+        ( new Configurations )->refresh_configs();
         
         // Return updated list
         return array_values($stacked_sites);
@@ -370,6 +372,8 @@ class Run {
              $wpdb->query( $wpdb->prepare("UPDATE stacked_{$stacked_site_id}_options set option_value = %s where option_name = 'siteurl'", 'https://' . $new_domain) );
              $wpdb->query( $wpdb->prepare("UPDATE stacked_{$stacked_site_id}_options set option_value = %s where option_name = 'home'", 'https://' . $new_domain) );
         }
+
+        ( new Configurations )->refresh_configs();
 
         return array_values($stacked_sites);
     }
