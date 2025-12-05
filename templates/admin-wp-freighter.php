@@ -63,7 +63,7 @@ input[type=text]:focus {
                 <v-toolbar-title>WP Freighter</v-toolbar-title>
                 <v-spacer></v-spacer>
                 <v-toolbar-items>
-                    <v-btn small text @click="cloneExisting()"><v-icon>mdi-content-copy</v-icon> Clone current site</v-btn>
+                    <v-btn small text @click="openCloneMainDialog()"><v-icon>mdi-content-copy</v-icon> Clone main site</v-btn>
                     <v-dialog v-model="new_site.show" persistent max-width="600px">
                     <template v-slot:activator="{ on, attrs }">
                         <v-btn small text v-on="on"><v-icon>mdi-plus</v-icon> Add new empty site</v-btn>
@@ -171,7 +171,8 @@ input[type=text]:focus {
                             <code>/content/{{ item.stacked_site_id }}/</code>
                         </td>
                         <td>{{ pretty_timestamp( item.created_at ) }}</td>
-                        <td width="68px">
+                        <td width="108px">
+                            <v-btn icon @click="openCloneDialog( item )" title="Clone stacked site"><v-icon>mdi-content-copy</v-icon></v-btn>
                             <v-btn icon @click="deleteSite( item.stacked_site_id )" title="Delete stacked site"><v-icon>mdi-delete</v-icon></v-btn>
                         </td>
                     </tr>
@@ -241,10 +242,48 @@ input[type=text]:focus {
         </v-col>
         </v-row>
       </v-layout>
+      <v-dialog v-model="clone_site.show" persistent max-width="600px">
+            <v-card>
+                <v-card-title>Clone Site</v-card-title>
+                <v-card-text>
+                    <v-form ref="clone_form" v-model="clone_site.valid">
+                        <v-container>
+                            <v-row>
+                                <v-col cols="12">
+                                    <p>You are about to clone <strong>{{ clone_site.source_name }}</strong>.</p>
+                                </v-col>
+                                <v-col cols="12" v-if="configurations.domain_mapping == 'off'">
+                                    <v-text-field 
+                                        v-model="clone_site.name" 
+                                        label="New Site Label"
+                                        hint="Enter a name for the cloned site"
+                                        persistent-hint
+                                    ></v-text-field>
+                                </v-col>
+                                <v-col cols="12" v-if="configurations.domain_mapping == 'on'">
+                                    <v-text-field 
+                                        v-model="clone_site.domain" 
+                                        label="New Domain" 
+                                        placeholder="example.com"
+                                        hint="Enter the domain for the cloned site"
+                                        persistent-hint
+                                    ></v-text-field>
+                                </v-col>
+                            </v-row>
+                        </v-container>
+                    </v-form>
+                </v-card-text>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn color="grey" text @click="clone_site.show = false">Cancel</v-btn>
+                    <v-btn color="primary" text @click="processClone()">Confirm Clone</v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
       </v-main>
     </v-app>
   </div>
-</form>
+
 <script>
 new Vue({
     el: '#app',
@@ -275,6 +314,14 @@ new Vue({
             password: Math.random().toString(36).slice(-10),
             show: false, 
             valid: true 
+        },
+        clone_site: {
+            show: false,
+            valid: true,
+            source_id: null,
+            source_name: "",
+            name: "",
+            domain: ""
         },
         pending_changes: false,
         loading: false,
@@ -328,6 +375,72 @@ new Vue({
         },
         changeForm() {
             this.pending_changes = true
+        },
+        cloneSite( stacked_site_id ) {
+            proceed = confirm( `Clone site ${stacked_site_id} to a new stacked website?` )
+            if ( ! proceed ) {
+                return
+            }
+            this.loading = true
+            axios.post( wpFreighterSettings.root + 'sites/clone', {
+                'source_id': stacked_site_id
+            })
+            .then( response => {
+                this.stacked_sites = response.data
+                this.loading = false
+            })
+            .catch( error => {
+                this.loading = false
+                console.log( error )
+            });
+        },
+        openCloneDialog( item ) {
+            this.clone_site.source_id   = item.stacked_site_id;
+            this.clone_site.source_name = item.name ? item.name : 'Site ' + item.stacked_site_id;
+            
+            // Pre-fill logical defaults
+            if ( this.configurations.domain_mapping == 'off' ) {
+                this.clone_site.name = item.name ? item.name + " (Clone)" : "";
+                this.clone_site.domain = "";
+            } else {
+                this.clone_site.name = "";
+                this.clone_site.domain = ""; // Keep empty for user to input
+            }
+            
+            this.clone_site.show = true;
+        },
+        openCloneMainDialog() {
+            // Explicitly set source_id to 'main' to trigger the new backend logic
+            this.clone_site.source_id   = 'main';
+            this.clone_site.source_name = "Main Site";
+            
+            // Reset fields
+            this.clone_site.name = "";
+            this.clone_site.domain = "";
+            
+            this.clone_site.show = true;
+        },
+        processClone() {
+            this.loading = true;
+            this.clone_site.show = false;
+
+            axios.post( wpFreighterSettings.root + 'sites/clone', {
+                'source_id': this.clone_site.source_id,
+                'name':      this.clone_site.name,
+                'domain':    this.clone_site.domain
+            })
+            .then( response => {
+                this.stacked_sites = response.data;
+                this.loading = false;
+                // Reset clone data
+                this.clone_site.source_id = null;
+                this.clone_site.name = "";
+                this.clone_site.domain = "";
+            })
+            .catch( error => {
+                this.loading = false;
+                console.log( error );
+            });
         },
         deleteSite( stacked_site_id ) {
             proceed = confirm( `Delete site ${stacked_site_id}?` )
