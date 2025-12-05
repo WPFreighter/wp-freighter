@@ -4,6 +4,22 @@
 <link href="https://cdn.jsdelivr.net/npm/vuetify@2.6.13/dist/vuetify.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/@mdi/font@5.x/css/materialdesignicons.min.css" rel="stylesheet">
 
+<script>
+    // Define WP API Settings locally
+    const wpFreighterSettings = {
+        root: "<?php echo esc_url_raw( rest_url( 'wp-freighter/v1/' ) ); ?>",
+        nonce: "<?php echo wp_create_nonce( 'wp_rest' ); ?>",
+        currentUser: {
+            username: "<?php echo esc_js( wp_get_current_user()->user_login ); ?>",
+            email: "<?php echo esc_js( wp_get_current_user()->user_email ); ?>"
+        }
+    };
+
+    // Configure Axios to use the nonce and JSON headers
+    axios.defaults.headers.common['X-WP-Nonce'] = wpFreighterSettings.nonce;
+    axios.defaults.headers.common['Content-Type'] = 'application/json';
+</script>
+
 <style>
 [v-cloak] > * {
     display:none;
@@ -243,7 +259,16 @@ new Vue({
     data: {
         response: "",
         configurations: <?php echo ( new WPFreighter\Configurations )->get_json(); ?>,
-        new_site: { name: "", domain: "", title: "", email: "", username: "", password: "", show: false, valid: true },
+        new_site: { 
+            name: "", 
+            domain: "", 
+            title: "", 
+            email: wpFreighterSettings.currentUser.email,
+            username: wpFreighterSettings.currentUser.username,
+            password: Math.random().toString(36).slice(-10),
+            show: false, 
+            valid: true 
+        },
         pending_changes: false,
         loading: false,
         stacked_sites: <?php echo ( new WPFreighter\Sites )->get_json(); ?>,
@@ -289,29 +314,21 @@ new Vue({
             if ( ! proceed ) {
                 return
             }
-            var data = {
-				'action': 'stacked_ajax',
-				'command': "deleteSite",
-                'value': stacked_site_id,
-			}
-			axios.post( ajaxurl, Qs.stringify( data ) )
-				.then( response => {
+            axios.post( wpFreighterSettings.root + 'sites/delete', {
+                'site_id': stacked_site_id,
+            } )
+                .then( response => {
                         this.stacked_sites = response.data
                     })
-                    .catch( error => {
+                .catch( error => {
                         console.log( error )
                     });
         },
         saveConfigurations() {
-            var data = {
-				'action': 'stacked_ajax',
-				'command': "saveConfigurations",
-                'value': { 
-                    sites: this.stacked_sites,
-                    configurations: this.configurations,
-                }
-			}
-			axios.post( ajaxurl, Qs.stringify( data ) )
+            axios.post( wpFreighterSettings.root + 'configurations', {
+                sites: this.stacked_sites,
+                configurations: this.configurations,
+            } )
 				.then( response => {
                         location.reload()
                     })
@@ -320,16 +337,13 @@ new Vue({
                     });
         },
         switchTo( stacked_site_id ) {
-            var data = {
-				'action': 'stacked_ajax',
-				'command': "switchTo",
-                'value': stacked_site_id,
-			}
-			axios.post( ajaxurl, Qs.stringify( data ) )
+            axios.post( wpFreighterSettings.root + 'switch', {
+                'site_id': stacked_site_id,
+			} )
 				.then( response => {
                         location.reload()
                     })
-                    .catch( error => {
+                 .catch( error => {
                         console.log( error )
                     });
         },
@@ -344,12 +358,8 @@ new Vue({
             }
             this.loading = true
             this.new_site.show = false
-            var data = {
-				'action': 'stacked_ajax',
-				'command': "newSite",
-                'value': this.new_site
-			}
-			axios.post( ajaxurl, Qs.stringify( data ) )
+            
+			axios.post( wpFreighterSettings.root + 'sites', this.new_site )
 				.then( response => {
                         this.stacked_sites = response.data
                         this.loading = false
@@ -365,11 +375,7 @@ new Vue({
             if ( ! proceed ) {
                 return
             }
-            var data = {
-				'action': 'stacked_ajax',
-				'command': "cloneExisting",
-			}
-			axios.post( ajaxurl, Qs.stringify( data ) )
+			axios.post( wpFreighterSettings.root + 'sites/clone' )
 				.then( response => {
                         this.stacked_sites = response.data
                     })
