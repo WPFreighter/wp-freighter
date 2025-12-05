@@ -1,0 +1,24 @@
+{
+	"name" : "WP Freighter",
+	"slug" : "wp-freighter",
+	"author" : "<a href='https://austinginder.com'>Austin Ginder</a>",
+	"author_profile" : "https://profiles.wordpress.org/austinginder",
+    "donate_link" : "https://github.com/sponsors/austinginder",
+	"version" : "1.2.0",
+	"download_url" : "https://github.com/WPFreighter/wp-freighter/releases/download/v1.2.0/wp-freighter.zip",
+	"requires" : "5.6",
+	"tested" : "6.9",
+	"requires_php" : "5.6",
+    "added" : "2020-09-10 02:10:00",
+	"last_updated" : "2025-12-05 10:00:00",
+    "homepage" : "https://wpfreighter.com",
+	"sections" : {
+		"description" : "Multi-tenant mode for WordPress.",
+		"installation" : "Install and activate the plugin.",
+		"changelog" : "Refer to official <a href='https://wpfreighter.com/changelog/'>changelog</a> for more details."
+	},
+	"banners" : {
+		"low" : "https://wpfreighter.com/images/wp-freighter-banner-772x250.webp",
+		"high" : "https://wpfreighter.com/images/wp-freighter-banner-1544x500.webp"
+	}
+}

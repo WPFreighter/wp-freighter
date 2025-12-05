@@ -18,7 +18,7 @@ class Updater {
         }
 
         $this->plugin_slug   = dirname ( plugin_basename( __DIR__ ) );
-        $this->version       = '1.1.2';
+        $this->version       = '1.2.0';
         $this->cache_key     = 'wpfreighter_updater';
         $this->cache_allowed = false;
 
