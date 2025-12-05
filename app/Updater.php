@@ -29,54 +29,55 @@ class Updater {
     }
 
     public function request(){
+        // Get the local manifest as a fallback.
+        $manifest_file = dirname(__DIR__) . "/manifest.json";
+        $local_manifest = null;
+        if ( file_exists($manifest_file) ) {
+            $local_manifest = json_decode( file_get_contents( $manifest_file ) );
+        }
+        
+        // If local manifest fails to load, create a default object to prevent errors.
+        if ( ! is_object( $local_manifest ) ) {
+            $local_manifest = new \stdClass();
+        }
 
+        // Attempt to get the remote manifest from the transient cache.
         $remote = get_transient( $this->cache_key );
 
         if( false === $remote || ! $this->cache_allowed ) {
-
-            $remote = wp_remote_get( 'https://wpfreighter.com/plugin-wpfreighter.json', [
-                    'timeout' => 10,
-                    'headers' => [
-                        'Accept' => 'application/json'
-                    ]
+            $remote_response = wp_remote_get( 'https://raw.githubusercontent.com/WPFreighter/wp-freighter/master/manifest.json', [
+                    'timeout' => 30,
+                    'headers' => [ 'Accept' => 'application/json' ]
                 ]
             );
 
-            if ( is_wp_error( $remote ) || 200 !== wp_remote_retrieve_response_code( $remote ) || empty( wp_remote_retrieve_body( $remote ) ) ) {
-                return false;
+            // If the remote request fails, return the modified local manifest.
+            if ( is_wp_error( $remote_response ) || 200 !== wp_remote_retrieve_response_code( $remote_response ) || empty( wp_remote_retrieve_body( $remote_response ) ) ) {
+                return $local_manifest;
             }
 
+            $remote = json_decode( wp_remote_retrieve_body( $remote_response ) );
             set_transient( $this->cache_key, $remote, DAY_IN_SECONDS );
-
         }
 
-        $remote = json_decode( wp_remote_retrieve_body( $remote ) );
-        
-        return $remote;
+        // If a valid remote object is retrieved, return it.
+        if ( is_object( $remote ) ) {
+            return $remote;
+        }
 
+        // Fallback to the local manifest if remote data is invalid.
+        return $local_manifest;
     }
 
     function info( $response, $action, $args ) {
-
-        // do nothing if you're not getting plugin information right now
-        if ( 'plugin_information' !== $action ) {
+        if ( 'plugin_information' !== $action || empty( $args->slug ) || $this->plugin_slug !== $args->slug ) {
             return $response;
         }
 
-        // do nothing if it is not our plugin
-        if ( empty( $args->slug ) || $this->plugin_slug !== $args->slug ) {
-            return $response;
-        }
-
-        // get updates
         $remote = $this->request();
-
-        if ( ! $remote ) {
-            return $response;
-        }
+        if ( ! $remote ) { return $response; }
 
         $response = new \stdClass();
-
         $response->name           = $remote->name;
         $response->slug           = $remote->slug;
         $response->version        = $remote->version;
@@ -103,33 +104,24 @@ class Updater {
                 'high' => $remote->banners->high
             ];
         }
-
         return $response;
-
     }
 
     public function update( $transient ) {
-
-        if ( empty($transient->checked ) ) {
-            return $transient;
-        }
+        if ( empty($transient->checked ) ) { return $transient; }
 
         $remote = $this->request();
-
-        if ( $remote && version_compare( $this->version, $remote->version, '<' ) && version_compare( $remote->requires, get_bloginfo( 'version' ), '<=' ) && version_compare( $remote->requires_php, PHP_VERSION, '<' ) ) {
-            $response              = new \stdClass();
-            $response->slug        = $this->plugin_slug;
-            $response->plugin      = "{$this->plugin_slug}/{$this->plugin_slug}.php";
+        if ( $remote && isset($remote->version) && version_compare( $this->version, $remote->version, '<' ) ) {
+            $response = new \stdClass();
+            $response->slug = $this->plugin_slug;
+            $response->plugin = "{$this->plugin_slug}/{$this->plugin_slug}.php";
             $response->new_version = $remote->version;
-            $response->tested      = $remote->tested;
-            $response->package     = $remote->download_url;
-
+            $response->package = $remote->download_url;
+            $response->tested = $remote->tested;
+            $response->requires_php = $remote->requires_php;
             $transient->response[ $response->plugin ] = $response;
-
         }
-
         return $transient;
-
     }
 
     public function purge( $upgrader, $options ) {
@@ -140,10 +132,8 @@ class Updater {
         }
 
         if ( $this->cache_allowed && 'update' === $options['action'] && 'plugin' === $options[ 'type' ] ) {
-            // just clean the cache when new plugin version is installed
             delete_transient( $this->cache_key );
         }
-
     }
 
 }
