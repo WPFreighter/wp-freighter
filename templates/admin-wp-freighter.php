@@ -47,7 +47,7 @@ input[type=text]:focus {
     box-shadow: none;
 }
 </style>
-<form action='options.php' method='post'>
+
 <div id="app" v-cloak>
     <v-app style="background:transparent;">
       <v-main>
@@ -90,7 +90,14 @@ input[type=text]:focus {
                                 <v-text-field v-model="new_site.username" label="Username*" :rules="[ value => !!value || 'Required.' ]"></v-text-field>
                             </v-col>
                             <v-col cols="12" sm="6" md="6">
-                                <v-text-field v-model="new_site.password" label="Password*" type="password" :rules="[ value => !!value || 'Required.' ]"></v-text-field>
+                                <v-text-field 
+                                    v-model="new_site.password" 
+                                    label="Password*" 
+                                    type="text" 
+                                    append-icon="mdi-refresh"
+                                    @click:append="new_site.password = generatePassword()"
+                                    :rules="[ value => !!value || 'Required.' ]"
+                                ></v-text-field>
                             </v-col>
                             </v-row>
                         </v-container>
@@ -98,7 +105,7 @@ input[type=text]:focus {
                         </v-form>
                         </v-card-text>
                         <v-card-actions>
-                        <v-spacer></v-spacer>
+                            <v-spacer></v-spacer>
                             <v-btn color="primary" text @click="new_site.show = false">Close</v-btn>
                             <v-btn color="primary" text @click="newSite()">Create new site</v-btn>
                         </v-card-actions>
@@ -282,10 +289,9 @@ new Vue({
     },
     methods: {
         pretty_timestamp( date ) {
-			// takes in '1577584719' then returns "Monday, Jun 18, 2018, 7:44 PM"
 			d = new Date(0);
-			d.setUTCSeconds(date);
-			formatted_date = d.toLocaleTimeString( "en-us", {
+            d.setUTCSeconds(date);
+            formatted_date = d.toLocaleTimeString( "en-us", {
                 "weekday": "short",
                 "year": "numeric",
                 "month": "short",
@@ -293,19 +299,33 @@ new Vue({
                 "hour": "2-digit",
                 "minute": "2-digit"
             });
-			return formatted_date;
+            return formatted_date;
 		},
         pretty_timestamp_mysql( date ) {
-			// takes in '1577584719' then returns "Monday, Jun 18, 2018, 7:44 PM"
 			d = new Date( date );
-			formatted_date = d.toLocaleDateString( "en-us", {
+            formatted_date = d.toLocaleDateString( "en-us", {
                 "weekday": "short",
                 "year": "numeric",
                 "month": "short",
                 "day": "numeric",
             });
-			return formatted_date;
+            return formatted_date;
 		},
+        generatePassword() {
+            return Math.random().toString(36).slice(-10);
+        },
+        getNewSiteDefaults() {
+            return { 
+                name: "", 
+                domain: "", 
+                title: "", 
+                email: wpFreighterSettings.currentUser.email, // Prefill Email
+                username: wpFreighterSettings.currentUser.username, // Prefill Username
+                password: this.generatePassword(), // Prefill Password
+                show: false, 
+                valid: true 
+            };
+        },
         changeForm() {
             this.pending_changes = true
         },
@@ -359,16 +379,16 @@ new Vue({
             this.loading = true
             this.new_site.show = false
             
-			axios.post( wpFreighterSettings.root + 'sites', this.new_site )
-				.then( response => {
+            axios.post( wpFreighterSettings.root + 'sites', this.new_site )
+                .then( response => {
                         this.stacked_sites = response.data
                         this.loading = false
-                        this.new_site = { name: "", domain: "", title: "", email: "", username: "", password: "", show: false }
-                    })
-                    .catch( error => {
-                        this.loading = false
-                        console.log( error )
-                    });
+                        this.new_site = this.getNewSiteDefaults();
+                })
+                .catch( error => {
+                    this.loading = false
+                    console.log( error )
+                });
         },
         cloneExisting() {
             proceed = confirm( "Clone existing site to a new stacked website?" )
