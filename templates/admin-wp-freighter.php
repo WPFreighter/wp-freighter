@@ -280,6 +280,9 @@ input[type=text]:focus {
                 </v-card-actions>
             </v-card>
         </v-dialog>
+        <v-snackbar v-model="snackbar" :timeout="2000" color="primary" bottom right>
+            {{ snackbarText }}
+        </v-snackbar>
       </v-main>
     </v-app>
   </div>
@@ -304,6 +307,8 @@ new Vue({
 	}),
     data: {
         response: "",
+        snackbar: false,
+        snackbarText: "",
         configurations: <?php echo ( new WPFreighter\Configurations )->get_json(); ?>,
         new_site: { 
             name: "", 
@@ -462,8 +467,14 @@ new Vue({
                 sites: this.stacked_sites,
                 configurations: this.configurations,
             } )
-				.then( response => {
-                        location.reload()
+                .then( response => {
+                        // Update local data
+                        this.configurations = response.data;
+                        this.pending_changes = false;
+                        
+                        // Trigger Snackbar
+                        this.snackbarText = "Configurations saved.";
+                        this.snackbar = true;
                     })
                     .catch( error => {
                         console.log( error )
