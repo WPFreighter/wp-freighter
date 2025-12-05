@@ -280,6 +280,26 @@ input[type=text]:focus {
                 </v-card-actions>
             </v-card>
         </v-dialog>
+        <v-dialog v-model="delete_site.show" persistent max-width="500px">
+            <v-card>
+                <v-card-title class="headline">Delete Site?</v-card-title>
+                <v-card-text>
+                    <p>Are you sure you want to delete this site? This action cannot be undone.</p>
+                    
+                    <v-alert v-if="delete_site.has_dedicated_content" type="primary" dense text icon="mdi-folder-alert">
+                        <strong>Dedicated Content Folder Detected</strong><br/>
+                        The following directory and its contents will be permanently deleted:
+                        <div class="mt-2 mb-1"><code style="font-size:11px">{{ delete_site.path }}</code></div>
+                        <div>Estimated Storage: <strong>{{ delete_site.size }}</strong></div>
+                    </v-alert>
+                </v-card-text>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn color="grey" text @click="delete_site.show = false">Cancel</v-btn>
+                    <v-btn color="error" text @click="confirmDelete()">Permanently Delete</v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
         <v-snackbar v-model="snackbar" :timeout="2000" color="primary" bottom right>
             {{ snackbarText }}
         </v-snackbar>
@@ -327,6 +347,13 @@ new Vue({
             source_name: "",
             name: "",
             domain: ""
+        },
+        delete_site: {
+            show: false,
+            id: null,
+            has_dedicated_content: false,
+            path: "",
+            size: ""
         },
         pending_changes: false,
         loading: false,
@@ -448,19 +475,47 @@ new Vue({
             });
         },
         deleteSite( stacked_site_id ) {
-            proceed = confirm( `Delete site ${stacked_site_id}?` )
-            if ( ! proceed ) {
-                return
-            }
+            this.loading = true;
+            this.delete_site.id = stacked_site_id;
+            
+            // Fetch stats first
+            axios.post( wpFreighterSettings.root + 'sites/stats', {
+                'site_id': stacked_site_id
+            })
+            .then( response => {
+                this.delete_site.has_dedicated_content = response.data.has_dedicated_content;
+                this.delete_site.path = response.data.path;
+                this.delete_site.size = response.data.size;
+                
+                this.loading = false;
+                this.delete_site.show = true;
+            })
+            .catch( error => {
+                this.loading = false;
+                console.log( error );
+                // Fallback to simple confirm if stats fail
+                if ( confirm( `Delete site ${stacked_site_id}?` ) ) {
+                    this.confirmDelete();
+                }
+            });
+        },
+        confirmDelete() {
+            this.delete_site.show = false;
+            this.loading = true;
+            
             axios.post( wpFreighterSettings.root + 'sites/delete', {
-                'site_id': stacked_site_id,
+                'site_id': this.delete_site.id,
             } )
-                .then( response => {
-                        this.stacked_sites = response.data
-                    })
-                .catch( error => {
-                        console.log( error )
-                    });
+            .then( response => {
+                this.stacked_sites = response.data;
+                this.loading = false;
+                this.snackbarText = "Site deleted successfully.";
+                this.snackbar = true;
+            })
+            .catch( error => {
+                this.loading = false;
+                console.log( error );
+            });
         },
         saveConfigurations() {
             axios.post( wpFreighterSettings.root + 'configurations', {

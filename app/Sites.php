@@ -96,4 +96,50 @@ class Sites {
         }
     }
 
+    public static function get_directory_size( $path ) {
+        $bytestotal = 0;
+        $path = realpath( $path );
+        if ( $path !== false && $path != '' && file_exists( $path ) ) {
+            foreach ( new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( $path, \FilesystemIterator::SKIP_DOTS ) ) as $object ) {
+                $bytestotal += $object->getSize();
+            }
+        }
+        return $bytestotal;
+    }
+
+    public static function format_size( $bytes ) {
+        $units = [ 'B', 'KB', 'MB', 'GB', 'TB' ];
+        $bytes = max( $bytes, 0 );
+        $pow   = floor( ( $bytes ? log( $bytes ) : 0 ) / log( 1024 ) );
+        $pow   = min( $pow, count( $units ) - 1 );
+        $bytes /= pow( 1024, $pow );
+        return round( $bytes, 2 ) . ' ' . $units[ $pow ];
+    }
+
+    public static function delete_directory( $dir ) {
+        if ( ! file_exists( $dir ) ) {
+            return true;
+        }
+
+        if ( is_link( $dir ) ) {
+            return unlink( $dir );
+        }
+
+        if ( ! is_dir( $dir ) ) {
+            return unlink( $dir );
+        }
+
+        foreach ( scandir( $dir ) as $item ) {
+            if ( $item == '.' || $item == '..' ) {
+                continue;
+            }
+
+            if ( ! self::delete_directory( $dir . DIRECTORY_SEPARATOR . $item ) ) {
+                return false;
+            }
+        }
+
+        return rmdir( $dir );
+    }
+
 }

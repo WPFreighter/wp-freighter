@@ -69,6 +69,11 @@ class Run {
             'callback'            => [ $this, 'exit_freighter' ],
             'permission_callback' => [ $this, 'permissions_check' ]
         ]);
+        register_rest_route( $namespace, '/sites/stats', [
+            'methods'             => 'POST',
+            'callback'            => [ $this, 'get_site_stats' ],
+            'permission_callback' => [ $this, 'permissions_check' ]
+        ]);
     }
 
     public function permissions_check() {
@@ -138,6 +143,12 @@ class Run {
                     continue;
                 }
                 $wpdb->query( "DROP TABLE IF EXISTS $table" );
+            }
+
+            // Purge Files
+            $site_content_path = ABSPATH . "content/$site_id_to_delete/";
+            if ( file_exists( $site_content_path ) ) {
+                Sites::delete_directory( $site_content_path );
             }
         }
 
@@ -555,6 +566,32 @@ class Run {
 
         // Save changes to wp-config.php
         file_put_contents( $wp_config_file, implode( "\n", $working ) );
+    }
+
+    public function get_site_stats( $request ) {
+        $params = $request->get_json_params();
+        $site_id = $params['site_id'];
+        
+        $path = ABSPATH . "content/$site_id/";
+        
+        if ( file_exists( $path ) ) {
+            $bytes = Sites::get_directory_size( $path );
+            
+            // Calculate relative path for display
+            $relative_path = str_replace( ABSPATH, '', $path );
+
+            return [
+                'has_dedicated_content' => true,
+                'path' => $relative_path, // Sending the relative path now
+                'size' => Sites::format_size( $bytes )
+            ];
+        }
+
+        return [
+            'has_dedicated_content' => false,
+            'path' => '',
+            'size' => 0
+        ];
     }
 
 }
