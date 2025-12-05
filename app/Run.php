@@ -74,6 +74,11 @@ class Run {
             'callback'            => [ $this, 'get_site_stats' ],
             'permission_callback' => [ $this, 'permissions_check' ]
         ]);
+        register_rest_route( $namespace, '/sites/autologin', [
+            'methods'             => 'POST',
+            'callback'            => [ $this, 'auto_login' ],
+            'permission_callback' => [ $this, 'permissions_check' ]
+        ]);
     }
 
     public function permissions_check() {
@@ -592,6 +597,141 @@ class Run {
             'path' => '',
             'size' => 0
         ];
+    }
+
+    public function auto_login( $request ) {
+        global $wpdb;
+        $params = $request->get_json_params();
+        $site_id = (int) $params['site_id'];
+
+        if ( empty( $site_id ) ) {
+            return new \WP_Error( 'invalid_site_id', 'Invalid Site ID', [ 'status' => 400 ] );
+        }
+
+        // 1. Check and Inject mu-plugin
+        $content_dir = ABSPATH . "content/$site_id";
+        $mu_dir      = $content_dir . "/mu-plugins";
+        $mu_file     = $mu_dir . "/captaincore-helper.php";
+
+        if ( ! file_exists( $mu_dir ) ) {
+            mkdir( $mu_dir, 0777, true );
+        }
+
+        if ( ! file_exists( $mu_file ) ) {
+            $plugin_content = <<<'EOD'
+<?php
+/**
+ * Plugin Name: CaptainCore Helper
+ * Plugin URI: https://captaincore.io
+ * Description: Collection of helper functions for CaptainCore
+ * Version: 0.2.8
+ * Author: CaptainCore
+ * Author URI: https://captaincore.io
+ * Text Domain: captaincore-helper
+ */
+
+function captaincore_quick_login_action_callback() {
+    $post = json_decode( file_get_contents( 'php://input' ) );
+    if ( ! isset( $post->token ) || $post->token != md5( AUTH_KEY ) ) {
+        return new WP_Error( 'token_invalid', 'Invalid Token', [ 'status' => 404 ] );
+        wp_die();
+    }
+    $post->user_login = str_replace( "%20", " ", $post->user_login );
+    $user     = get_user_by( 'login', $post->user_login );
+    $password = wp_generate_password();
+    $token    = sha1( $password );
+    update_user_meta( $user->ID, 'captaincore_login_token', $token );
+    $query_args = [
+            'user_id'                 => $user->ID,
+            'captaincore_login_token' => $token,
+        ];
+    $login_url    = wp_login_url();
+    $one_time_url = add_query_arg( $query_args, $login_url );
+    echo $one_time_url;
+    wp_die();
+}
+add_action( 'wp_ajax_nopriv_captaincore_quick_login', 'captaincore_quick_login_action_callback' );
+
+function captaincore_login_handle_token() {
+    global $pagenow;
+    if ( 'wp-login.php' !== $pagenow || empty( $_GET['user_id'] ) || empty( $_GET['captaincore_login_token'] ) ) {
+        return;
+    }
+    if ( is_user_logged_in() ) {
+        $error = sprintf( __( 'Invalid one-time login token, but you are logged in as \'%1$s\'. <a href="%2$s">Go to the dashboard instead</a>?', 'captaincore-login' ), wp_get_current_user()->user_login, admin_url() );
+    } else {
+        $error = sprintf( __( 'Invalid one-time login token. <a href="%s">Try signing in instead</a>?', 'captaincore-login' ), wp_login_url() );
+    }
+    $user = get_user_by( 'id', (int) $_GET['user_id'] );
+    if ( ! $user ) {
+        wp_die( $error );
+    }
+    $token    = get_user_meta( $user->ID, 'captaincore_login_token', true );
+    $is_valid = false;
+        if ( hash_equals( $token, $_GET['captaincore_login_token'] ) ) {
+            $is_valid = true;
+        }
+    if ( ! $is_valid ) {
+        wp_die( $error );
+    }
+    delete_user_meta( $user->ID, 'captaincore_login_token' );
+    wp_set_auth_cookie( $user->ID, 1 );
+    wp_safe_redirect( admin_url() );
+    exit;
+}
+add_action( 'init', 'captaincore_login_handle_token' );
+
+add_filter( 'auto_plugin_update_send_email', '__return_false' );
+add_filter( 'auto_theme_update_send_email', '__return_false' );
+EOD;
+            file_put_contents( $mu_file, $plugin_content );
+        }
+
+        // 2. Identify Tables
+        $prefix     = "stacked_{$site_id}_";
+        $meta_table = $prefix . "usermeta";
+        $opt_table  = $prefix . "options";
+
+        // 3. Find a random Administrator
+        // Note: WP Freighter renames 'wp_capabilities' to 'stacked_X_capabilities' during clone
+        $cap_key = $prefix . "capabilities"; 
+        
+        $sql = "SELECT user_id FROM $meta_table WHERE meta_key = '$cap_key' AND meta_value LIKE '%administrator%' ORDER BY RAND() LIMIT 1";
+        $user_id = $wpdb->get_var( $sql );
+
+        if ( ! $user_id ) {
+             return new \WP_Error( 'no_admin', 'No administrator found for this site.', [ 'status' => 404 ] );
+        }
+
+        // 4. Generate Token
+        $password = wp_generate_password();
+        $token    = sha1( $password );
+
+        // 5. Save Token to Stacked DB (Manual update_user_meta)
+        // Check if meta exists
+        $existing_meta = $wpdb->get_var( $wpdb->prepare( "SELECT umeta_id FROM $meta_table WHERE user_id = %d AND meta_key = 'captaincore_login_token'", $user_id ) );
+
+        if ( $existing_meta ) {
+            $wpdb->query( $wpdb->prepare( "UPDATE $meta_table SET meta_value = %s WHERE umeta_id = %d", $token, $existing_meta ) );
+        } else {
+            $wpdb->query( $wpdb->prepare( "INSERT INTO $meta_table (user_id, meta_key, meta_value) VALUES (%d, 'captaincore_login_token', %s)", $user_id, $token ) );
+        }
+
+        // 6. Get Site URL
+        $site_url = $wpdb->get_var( "SELECT option_value FROM $opt_table WHERE option_name = 'siteurl'" );
+        $site_url = rtrim( $site_url, '/' );
+
+        // 7. Construct Link
+        $query_args = [
+            'user_id'                 => $user_id,
+            'captaincore_login_token' => $token,
+        ];
+        
+        $login_url = $site_url . '/wp-login.php';
+        // We use our own http_build_query logic here since add_query_arg might use the current site's context
+        $final_url = $login_url . '?' . http_build_query( $query_args );
+
+        return [ 'url' => $final_url ];
     }
 
 }

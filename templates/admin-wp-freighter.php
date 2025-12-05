@@ -171,9 +171,48 @@ input[type=text]:focus {
                             <code>/content/{{ item.stacked_site_id }}/</code>
                         </td>
                         <td>{{ pretty_timestamp( item.created_at ) }}</td>
-                        <td width="108px">
-                            <v-btn icon @click="openCloneDialog( item )" title="Clone stacked site"><v-icon>mdi-content-copy</v-icon></v-btn>
-                            <v-btn icon @click="deleteSite( item.stacked_site_id )" title="Delete stacked site"><v-icon>mdi-delete</v-icon></v-btn>
+                        <td width="150px" class="text-right">
+                            <v-tooltip bottom v-if="configurations.domain_mapping == 'on'">
+                                <template v-slot:activator="{ on, attrs }">
+                                    <v-btn 
+                                        icon 
+                                        @click="autoLogin( item )" 
+                                        v-bind="attrs" 
+                                        v-on="on"
+                                    >
+                                        <v-icon>mdi-login-variant</v-icon>
+                                    </v-btn>
+                                </template>
+                                <span>Magic Autologin</span>
+                            </v-tooltip>
+
+                            <v-tooltip bottom>
+                                <template v-slot:activator="{ on, attrs }">
+                                    <v-btn 
+                                        icon 
+                                        @click="openCloneDialog( item )" 
+                                        v-bind="attrs" 
+                                        v-on="on"
+                                    >
+                                        <v-icon>mdi-content-copy</v-icon>
+                                    </v-btn>
+                                </template>
+                                <span>Clone site</span>
+                            </v-tooltip>
+
+                            <v-tooltip bottom>
+                                <template v-slot:activator="{ on, attrs }">
+                                    <v-btn 
+                                        icon 
+                                        @click="deleteSite( item.stacked_site_id )" 
+                                        v-bind="attrs" 
+                                        v-on="on"
+                                    >
+                                        <v-icon>mdi-delete</v-icon>
+                                    </v-btn>
+                                </template>
+                                <span>Delete site</span>
+                            </v-tooltip>
                         </td>
                     </tr>
                     </tbody>
@@ -545,6 +584,24 @@ new Vue({
                  .catch( error => {
                         console.log( error )
                     });
+        },
+        autoLogin( item ) {
+            this.loading = true;
+            axios.post( wpFreighterSettings.root + 'sites/autologin', {
+                'site_id': item.stacked_site_id
+            })
+            .then( response => {
+                this.loading = false;
+                if ( response.data.url ) {
+                    window.open( response.data.url, '_blank' );
+                }
+            })
+            .catch( error => {
+                this.loading = false;
+                this.snackbarText = "Autologin failed: " + (error.response.data.message || error.message);
+                this.snackbar = true;
+                console.log( error );
+            });
         },
         newSite() {
             this.$refs.form.validate()
