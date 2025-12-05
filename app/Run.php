@@ -10,9 +10,9 @@ class Run {
             add_filter('https_local_ssl_verify', '__return_false');
             add_filter('http_request_host_is_external', '__return_true');
         }
-        add_action( 'wp_ajax_stacked_ajax', [ $this, 'ajax_actions' ] );
         add_action( 'admin_bar_menu', [ $this, 'admin_toolbar' ], 100 );
         add_action( 'admin_menu', [ $this, 'admin_menu' ] );
+        add_action( 'rest_api_init', [ $this, 'register_rest_endpoints' ] );
         register_activation_hook( plugin_dir_path( __DIR__ ) . "wp-freighter.php", [ $this, 'activate' ] );
         register_deactivation_hook( plugin_dir_path( __DIR__ ) . "wp-freighter.php", [ $this, 'deactivate' ] );
         $plugin_file = dirname ( plugin_basename( __DIR__ ) ) . "/wp-freighter.php" ;
@@ -21,227 +21,368 @@ class Run {
 
     public function settings_link( $links ) {
         $settings_link = "<a href='/wp-admin/tools.php?page=wp-freighter'>" . __( 'Settings' ) . "</a>";
-        // Adds the link to the end of the array.
         array_unshift( $links, $settings_link );
         return $links;
     }
 
-    public function ajax_actions() {
+    public function register_rest_endpoints() {
+        $namespace = 'wp-freighter/v1';
+
+        register_rest_route( $namespace, '/sites', [
+            'methods'             => 'GET',
+            'callback'            => [ $this, 'get_sites' ],
+            'permission_callback' => [ $this, 'permissions_check' ]
+        ]);
+
+        register_rest_route( $namespace, '/sites', [
+            'methods'             => 'POST',
+            'callback'            => [ $this, 'new_site' ],
+            'permission_callback' => [ $this, 'permissions_check' ]
+        ]);
+
+        register_rest_route( $namespace, '/sites/delete', [
+            'methods'             => 'POST',
+            'callback'            => [ $this, 'delete_site' ],
+            'permission_callback' => [ $this, 'permissions_check' ]
+        ]);
+
+        register_rest_route( $namespace, '/sites/clone', [
+            'methods'             => 'POST',
+            'callback'            => [ $this, 'clone_existing' ],
+            'permission_callback' => [ $this, 'permissions_check' ]
+        ]);
+
+        register_rest_route( $namespace, '/configurations', [
+            'methods'             => 'POST',
+            'callback'            => [ $this, 'save_configurations' ],
+            'permission_callback' => [ $this, 'permissions_check' ]
+        ]);
+
+        register_rest_route( $namespace, '/switch', [
+            'methods'             => 'POST',
+            'callback'            => [ $this, 'switch_to' ],
+            'permission_callback' => [ $this, 'permissions_check' ]
+        ]);
+        
+        register_rest_route( $namespace, '/exit', [
+            'methods'             => 'POST',
+            'callback'            => [ $this, 'exit_freighter' ],
+            'permission_callback' => [ $this, 'permissions_check' ]
+        ]);
+    }
+
+    public function permissions_check() {
+        return current_user_can( 'manage_options' );
+    }
+
+    public function get_sites( $request ) {
+        $sites = ( new Sites )->get();
+        if ( empty( $sites ) ) {
+            $sites = [];
+        }
+        return $sites;
+    }
+
+    public function save_configurations( $request ) {
+        $params = $request->get_json_params();
+        $sites_data = isset($params['sites']) ? $params['sites'] : [];
+        $configs_data = isset($params['configurations']) ? $params['configurations'] : [];
+        
+        ( new Sites )->update( $sites_data );
+        ( new Configurations )->update( $configs_data );
+        
+        return ( new Configurations )->get();
+    }
+
+    public function switch_to( $request ) {
+        $params = $request->get_json_params();
+        $site_id = $params['site_id'];
+
+        setcookie( 'stacked_site_id', $site_id, time() + 31536000, '/' );
+        $_COOKIE[ "stacked_site_id" ] = $site_id;
+
+        return [ 'success' => true, 'site_id' => $site_id ];
+    }
+    
+    public function exit_freighter( $request ) {
+        setcookie( 'stacked_site_id', null, -1, '/');
+        unset( $_COOKIE[ "stacked_site_id" ] );
+        return [ 'success' => true ];
+    }
+
+    public function delete_site( $request ) {
         global $wpdb;
-        $db_prefix          = $wpdb->prefix;
-        $db_prefix_primary  = $db_prefix_primary = ( defined( 'TABLE_PREFIX' ) ? TABLE_PREFIX : $db_prefix );
-        if ( $db_prefix_primary == "TABLE_PREFIX" ) { 
-            $db_prefix_primary = $db_prefix;
-        }
-        $command       = empty( $_POST['command'] ) ? "" : $_POST['command'];
-        $value         = empty( $_POST['value'] ) ? "" : $_POST['value'];
+        $params = $request->get_json_params();
+        $site_id_to_delete = $params['site_id'];
+
         $stacked_sites = ( new Sites )->get();
+        $db_prefix_primary = $this->get_primary_prefix();
 
-        if ( isset( $_GET['command'] ) && $_GET['command'] == "exitWPFreighter" ) {
-            setcookie( 'stacked_site_id', null, -1, '/');
-            unset( $_COOKIE[ "stacked_site_id" ] );
-            wp_redirect( $_SERVER['HTTP_REFERER'] );
-            exit;
-        }
-
-        if ( $command == "fetchSites" ) {
-            if ( empty( $stacked_sites ) ) {
-                $stacked_sites = [];
+        // Remove from array
+        foreach( $stacked_sites as $key => $item ) {
+            if ( $site_id_to_delete == $item['stacked_site_id'] ) {
+                unset( $stacked_sites[$key] );
             }
-            echo json_encode( $stacked_sites );
         }
 
-        if ( $command == "saveConfigurations" ) {
-            $value = (object) $value;
-            ( new Sites )->update( $value->sites );
-            ( new Configurations )->update( $value->configurations );
-            echo json_encode( ( new Configurations )->get() );
-        }
+        // Save Options
+        $stacked_sites_serialize = serialize( $stacked_sites );
+        $wpdb->query( $wpdb->prepare( "UPDATE {$db_prefix_primary}options set option_value = %s where option_name = 'stacked_sites'", $stacked_sites_serialize ) );
 
-        if ( $command == "switchTo" ) {
-            setcookie( 'stacked_site_id', $value, time() + 31536000, '/' );
-            $_COOKIE[ "stacked_site_id" ] = $value;
-        }
-
-        if ( $command == "deleteSite" ) {
-            foreach( $stacked_sites as $key => $item ) {
-                if ( $value == $item['stacked_site_id'] ) {
-                    unset( $stacked_sites[$key] );  
-                }
-            }
-
-            $stacked_sites_serialize = serialize( $stacked_sites );
-            $wpdb->query("UPDATE ${db_prefix_primary}options set option_value = '$stacked_sites_serialize' where option_name = 'stacked_sites'");
-
-            if ( ! empty ( $value ) ) {
-                $site_table_prefix = "stacked_{$value}_";
-                $tables            = array_column( $wpdb->get_results("show tables"), "Tables_in_". DB_NAME );
-                foreach ( $tables as $table ) {
-                    if ( substr( $table, 0, strlen( $site_table_prefix ) ) != $site_table_prefix ) {
-                        continue;
-                    }
-                    $wpdb->query( "DROP TABLE IF EXISTS $table" );
-                }
-            }
-            echo ( new Sites )->get_json();
-        }
-
-        if ( $command == "newSite" ) {
-
-            global $wpdb, $table_prefix;
-            $db_prefix         = $wpdb->prefix;
-            $db_prefix_primary = ( defined( 'TABLE_PREFIX' ) ? TABLE_PREFIX : $db_prefix );
-            if ( $db_prefix_primary == "TABLE_PREFIX" ) { 
-                $db_prefix_primary = $db_prefix;
-            }
-
-            require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
-
-            $new_site            = (object) $value;
-            $stacked_sites       = ( new Sites )->get();
-            $current_stacked_ids = array_column( $stacked_sites, "stacked_site_id" );
-            $stacked_site_id     = ( empty( $current_stacked_ids ) ? 1 : (int) max( $current_stacked_ids ) + 1 );
-            $new_table_prefix    = "stacked_{$stacked_site_id}_";
-            $tables              = array_column( $wpdb->get_results("show tables"), "Tables_in_". DB_NAME );
+        // Drop Tables
+        if ( ! empty ( $site_id_to_delete ) ) {
+            $site_table_prefix = "stacked_{$site_id_to_delete}_";
+            $tables = array_column( $wpdb->get_results("show tables"), "Tables_in_". DB_NAME );
             foreach ( $tables as $table ) {
-                if ( substr( $table, 0, strlen( $new_table_prefix ) ) != $new_table_prefix ) {
+                if ( substr( $table, 0, strlen( $site_table_prefix ) ) != $site_table_prefix ) {
                     continue;
                 }
                 $wpdb->query( "DROP TABLE IF EXISTS $table" );
             }
-            $stacked_sites[] = [
-                "stacked_site_id" => $stacked_site_id,
-                "created_at"      => strtotime("now"),
-                "name"            => $new_site->name,
-                "domain"          => $new_site->domain
-            ];
+        }
+        
+        // Return updated list
+        return array_values($stacked_sites);
+    }
 
-            $stacked_sites_serialize = serialize( $stacked_sites );
-            $results                 = $wpdb->get_results("select option_id from ${db_prefix_primary}options where option_name = 'stacked_sites'");
-            if ( empty( $results ) ) {
-                $wpdb->query("INSERT INTO {$db_prefix_primary}options ( option_name, option_value) VALUES ( 'stacked_sites', '$stacked_sites_serialize' )");
-            } else {
-                $wpdb->query("UPDATE ${db_prefix_primary}options set option_value = '$stacked_sites_serialize' where option_name = 'stacked_sites'");
+    public function new_site( $request ) {
+        global $wpdb, $table_prefix;
+        $original_table_prefix = $table_prefix;
+
+        $params = $request->get_json_params();
+        $new_site_data = (object) $params;
+
+        require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+        
+        $stacked_sites = ( new Sites )->get();
+        $db_prefix = $wpdb->prefix;
+        $db_prefix_primary = $this->get_primary_prefix();
+
+        $current_stacked_ids = array_column( $stacked_sites, "stacked_site_id" );
+        $stacked_site_id     = ( empty( $current_stacked_ids ) ? 1 : (int) max( $current_stacked_ids ) + 1 );
+        $new_table_prefix    = "stacked_{$stacked_site_id}_";
+        
+        $tables = array_column( $wpdb->get_results("show tables"), "Tables_in_". DB_NAME );
+        foreach ( $tables as $table ) {
+            if ( substr( $table, 0, strlen( $new_table_prefix ) ) != $new_table_prefix ) {
+                continue;
             }
-            echo ( new Sites )->get_json();
-
-            ( new Configurations )->refresh_configs();
-
-            // Prepare new content folder if needed
-            if ( ( new Configurations )->get()->files == "dedicated" ) {
-                if ( ! file_exists( ABSPATH . "content/$stacked_site_id/" ) ) {
-                    mkdir( ABSPATH . "content/$stacked_site_id/themes/", 0777, true );
-                    mkdir( ABSPATH . "content/$stacked_site_id/plugins/", 0777, true );
-                    mkdir( ABSPATH . "content/$stacked_site_id/uploads/", 0777, true );
-                }
-            }
-
-            // Install WordPress to new table prefix
-            $table_prefix = $new_table_prefix;
-            wp_set_wpdb_vars();
-            wp_install( $new_site->title, $new_site->username, $new_site->email, true, '', wp_slash( $new_site->password ), "en" );
-
-            if ( ! empty ( $new_site->domain ) ) {
-                $wpdb->query("UPDATE stacked_{$stacked_site_id}_options set option_value = 'https://{$new_site->domain}' where option_name = 'siteurl'");
-                $wpdb->query("UPDATE stacked_{$stacked_site_id}_options set option_value = 'https://{$new_site->domain}' where option_name = 'home'");
-            }
-
-            // Activate WP Freighter
-            $wpdb->query( "UPDATE {$new_table_prefix}options set `option_value` = 'a:1:{i:0;s:23:\"wp-freighter/wp-freighter.php\";}' WHERE `option_name` = 'active_plugins'" );
-
-            // Fix permissions
-            $wpdb->query( "UPDATE {$new_table_prefix}options set `option_name` = 'stacked_{$stacked_site_id}_user_roles' WHERE `option_name` = '{$db_prefix}user_roles'" );
-
-            // Check if default theme is installed on new site
-            $default_theme_path = ABSPATH . "content/$stacked_site_id/themes/" . WP_DEFAULT_THEME ."/";
-            if ( ! file_exists( $default_theme_path ) ) {
-                require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
-                include_once ABSPATH . 'wp-admin/includes/theme.php';
-                $skin     = new \WP_Ajax_Upgrader_Skin();
-                $upgrader = new \Theme_Upgrader( $skin );
-                $api      = themes_api( 'theme_information', [ 'slug'  => WP_DEFAULT_THEME, 'fields' => [ 'sections' => false ] ] );
-                $result   = $upgrader->run( [
-                        'package'           => $api->download_link,
-                        'destination'       => $default_theme_path,
-                        'clear_destination' => false,
-                        'clear_working'     => true,
-                        'hook_extra'        => [
-                            'type'   => 'theme',
-                            'action' => 'install',
-                        ],
-                    ] );
-            }
-
+            $wpdb->query( "DROP TABLE IF EXISTS $table" );
         }
 
-        if ( $command == "cloneExisting" ) {
-            global $wpdb, $table_prefix;
-            $source            = WP_CONTENT_DIR;
-            $db_prefix         = $wpdb->prefix;
-            $db_prefix_primary = ( defined( 'TABLE_PREFIX' ) ? TABLE_PREFIX : $db_prefix );
-            if ( $db_prefix_primary == "TABLE_PREFIX" ) { 
-                $db_prefix_primary = $db_prefix;
-            }
-            $stacked_sites       = ( new Sites )->get();
-            $current_stacked_ids = array_column( $stacked_sites, "stacked_site_id" );
-            $stacked_site_id     = ( empty( $current_stacked_ids ) ? 1 : (int) max( $current_stacked_ids ) + 1 );
-            $tables              = array_column( $wpdb->get_results("show tables"), "Tables_in_". DB_NAME );
-            // Scan through all table tables
-            foreach ( $tables as $table ) {
-                // Duplicate only required tables
-                if ( substr( $table, 0, strlen( $db_prefix ) ) != $db_prefix ) {
-                    continue;
-                }
-                $table_name     = substr( $table, strlen( $db_prefix ), strlen( $table ) );
-                $new_table_name = "stacked_{$stacked_site_id}_{$table_name}";
-                $wpdb->query( "DROP TABLE  IF EXISTS $new_table_name" );
-                $wpdb->query( "CREATE TABLE $new_table_name LIKE $table" );
-                $wpdb->query( "INSERT INTO $new_table_name SELECT * FROM $table" );
-                if ( $table_name == "options" ) {
-                    $wpdb->query( "UPDATE $new_table_name set `option_name` = 'stacked_{$stacked_site_id}_user_roles' WHERE `option_name` = '{$db_prefix}user_roles'" );
-                }
-                if ( $table_name == "usermeta" ) {
-                    $wpdb->query( "UPDATE $new_table_name set `meta_key` = 'stacked_{$stacked_site_id}_capabilities' WHERE `meta_key` = '{$db_prefix}capabilities'" );
-                    $wpdb->query( "UPDATE $new_table_name set `meta_key` = 'stacked_{$stacked_site_id}_user_level' WHERE `meta_key` = '{$db_prefix}user_level'" );
-                }
-            }
-            $stacked_sites[] = [
-                "stacked_site_id" => $stacked_site_id,
-                "created_at"      => strtotime("now"),
-                "name"            => "",
-                "domain"          => ""
-            ];
+        $stacked_sites[] = [
+            "stacked_site_id" => $stacked_site_id,
+            "created_at"      => strtotime("now"),
+            "name"            => $new_site_data->name,
+            "domain"          => $new_site_data->domain
+        ];
 
-            $stacked_sites_serialize = serialize( $stacked_sites );
-            $results                 = $wpdb->get_results("select option_id from ${db_prefix_primary}options where option_name = 'stacked_sites'");
-            if ( empty( $results ) ) {
-                $wpdb->query("INSERT INTO {$db_prefix_primary}options ( option_name, option_value) VALUES ( 'stacked_sites', '$stacked_sites_serialize' )");
-            } else {
-                $wpdb->query("UPDATE ${db_prefix_primary}options set option_value = '$stacked_sites_serialize' where option_name = 'stacked_sites'");
-            }
+        $stacked_sites_serialize = serialize( $stacked_sites );
+        
+        $results = $wpdb->get_results("select option_id from {$db_prefix_primary}options where option_name = 'stacked_sites'");
+        if ( empty( $results ) ) {
+            $wpdb->query( $wpdb->prepare( "INSERT INTO {$db_prefix_primary}options ( option_name, option_value) VALUES ( 'stacked_sites', %s )", $stacked_sites_serialize ) );
+        } else {
+            $wpdb->query( $wpdb->prepare( "UPDATE {$db_prefix_primary}options set option_value = %s where option_name = 'stacked_sites'", $stacked_sites_serialize ) );
+        }
 
-            echo ( new Sites )->get_json();
-            // Prepare new content folder if needed
-            if ( ( new Configurations )->get()->files == "dedicated" ) {
-                if ( ! file_exists( ABSPATH . "content/$stacked_site_id/" ) ) {
-                    mkdir( ABSPATH . "content/$stacked_site_id/", 0777, true );
-                    $dest   = ABSPATH . "content/$stacked_site_id";
+        ( new Configurations )->refresh_configs();
+
+        // Prepare new content folder if needed
+        if ( ( new Configurations )->get()->files == "dedicated" ) {
+            if ( ! file_exists( ABSPATH . "content/$stacked_site_id/" ) ) {
+                mkdir( ABSPATH . "content/$stacked_site_id/themes/", 0777, true );
+                mkdir( ABSPATH . "content/$stacked_site_id/plugins/", 0777, true );
+                mkdir( ABSPATH . "content/$stacked_site_id/uploads/", 0777, true );
+            }
+        }
+
+        // Install WordPress to new table prefix
+        $table_prefix = $new_table_prefix;
+        wp_set_wpdb_vars();
+
+        ob_start();
+        $response = wp_install( $new_site_data->title, $new_site_data->username, $new_site_data->email, true, '', wp_slash( $new_site_data->password ), "en" );
+        ob_end_clean();
+        
+        if ( ! empty ( $new_site_data->domain ) ) {
+            $wpdb->query( $wpdb->prepare("UPDATE stacked_{$stacked_site_id}_options set option_value = %s where option_name = 'siteurl'", 'https://' . $new_site_data->domain) );
+            $wpdb->query( $wpdb->prepare("UPDATE stacked_{$stacked_site_id}_options set option_value = %s where option_name = 'home'", 'https://' . $new_site_data->domain) );
+        }
+
+        // Activate WP Freighter
+        $wpdb->query( "UPDATE {$new_table_prefix}options set `option_value` = 'a:1:{i:0;s:23:\"wp-freighter/wp-freighter.php\";}' WHERE `option_name` = 'active_plugins'" );
+        // Fix permissions
+        $wpdb->query( "UPDATE {$new_table_prefix}options set `option_name` = 'stacked_{$stacked_site_id}_user_roles' WHERE `option_name` = '{$db_prefix}user_roles'" );
+        
+        // Check if default theme is installed on new site
+        $default_theme_path = ABSPATH . "content/$stacked_site_id/themes/" . WP_DEFAULT_THEME ."/";
+        if ( ! file_exists( $default_theme_path ) ) {
+            require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+            include_once ABSPATH . 'wp-admin/includes/theme.php';
+
+            // Remove hooks that trigger update checks
+            remove_action( 'upgrader_process_complete', [ 'Language_Pack_Upgrader', 'async_upgrade' ], 20 );
+            remove_action( 'upgrader_process_complete', 'wp_version_check', 10 );
+            remove_action( 'upgrader_process_complete', 'wp_update_plugins', 10 );
+            remove_action( 'upgrader_process_complete', 'wp_update_themes', 10 );
+
+            // FIX: Use an anonymous class to silence the upgrader output completely
+            // This overrides feedback, header, and footer methods to prevent HTML generation.
+            $skin = new class extends \WP_Upgrader_Skin {
+                public function feedback( $string, ...$args ) { /* Silence */ }
+                public function header() { /* Silence */ }
+                public function footer() { /* Silence */ }
+                public function error( $errors ) { /* Silence */ }
+            };
+            
+            $upgrader = new \Theme_Upgrader( $skin );
+            
+            $api      = themes_api( 'theme_information', [ 'slug'  => WP_DEFAULT_THEME, 'fields' => [ 'sections' => false ] ] );
+            
+            // No ob_start/ob_clean needed anymore because the skin generates no output
+            $result   = $upgrader->run( [
+                'package'           => $api->download_link,
+                'destination'       => $default_theme_path,
+                'clear_destination' => false,
+                'clear_working'     => true,
+                'hook_extra'        => [
+                    'type'   => 'theme',
+                    'action' => 'install',
+                ],
+            ] );
+        }
+        $table_prefix = $original_table_prefix;
+        wp_set_wpdb_vars();
+        return Sites::fetch();
+    }
+
+    public function clone_existing( $request ) {
+        global $wpdb;
+
+        $params    = $request->get_json_params();
+        $source_id = isset( $params['source_id'] ) ? $params['source_id'] : false;
+        
+        // Retrieve custom name/domain from request, default to empty if not set
+        $new_name   = isset( $params['name'] ) ? $params['name'] : "";
+        $new_domain = isset( $params['domain'] ) ? $params['domain'] : "";
+
+        if ( $source_id && $source_id !== 'main' ) {
+            $source    = ABSPATH . "content/$source_id";
+            $db_prefix = "stacked_{$source_id}_";
+        } else {
+            // Force Main Site paths regardless of current view context
+            $source    = ABSPATH . 'wp-content';
+            $db_prefix = $this->get_primary_prefix();
+        }
+
+        $db_prefix_primary   = $this->get_primary_prefix();
+        $stacked_sites       = ( new Sites )->get();
+        $current_stacked_ids = array_column( $stacked_sites, "stacked_site_id" );
+        $stacked_site_id     = ( empty( $current_stacked_ids ) ? 1 : (int) max( $current_stacked_ids ) + 1 );
+        $tables              = array_column( $wpdb->get_results("show tables"), "Tables_in_". DB_NAME );
+        
+        // 1. Duplicate Database Tables
+        foreach ( $tables as $table ) {
+            if ( substr( $table, 0, strlen( $db_prefix ) ) != $db_prefix ) {
+                continue;
+            }
+            $table_name     = substr( $table, strlen( $db_prefix ), strlen( $table ) );
+            $new_table_name = "stacked_{$stacked_site_id}_{$table_name}";
+            $wpdb->query( "DROP TABLE  IF EXISTS $new_table_name" );
+            $wpdb->query( "CREATE TABLE $new_table_name LIKE $table" );
+            $wpdb->query( "INSERT INTO $new_table_name SELECT * FROM $table" );
+            
+            if ( $table_name == "options" ) {
+                $wpdb->query( "UPDATE $new_table_name set `option_name` = 'stacked_{$stacked_site_id}_user_roles' WHERE `option_name` = '{$db_prefix}user_roles'" );
+            }
+            if ( $table_name == "usermeta" ) {
+                $wpdb->query( "UPDATE $new_table_name set `meta_key` = 'stacked_{$stacked_site_id}_capabilities' WHERE `meta_key` = '{$db_prefix}capabilities'" );
+                $wpdb->query( "UPDATE $new_table_name set `meta_key` = 'stacked_{$stacked_site_id}_user_level' WHERE `meta_key` = '{$db_prefix}user_level'" );
+            }
+        }
+
+        // 2. Generate Fallback Name if user left it empty
+        if ( empty( $new_name ) && $source_id ) {
+            foreach( $stacked_sites as $site ) {
+                if ( $site['stacked_site_id'] == $source_id ) {
+                    $new_name = $site['name'] . " (Clone)";
+                    break;
+                }
+            }
+        }
+
+        $stacked_sites[] = [
+            "stacked_site_id" => $stacked_site_id,
+            "created_at"      => strtotime("now"),
+            "name"            => $new_name,
+            "domain"          => $new_domain
+        ];
+
+        $stacked_sites_serialize = serialize( $stacked_sites );
+        $results = $wpdb->get_results("select option_id from {$db_prefix_primary}options where option_name = 'stacked_sites'");
+        if ( empty( $results ) ) {
+            $wpdb->query( $wpdb->prepare("INSERT INTO {$db_prefix_primary}options ( option_name, option_value) VALUES ( 'stacked_sites', %s )", $stacked_sites_serialize) );
+        } else {
+            $wpdb->query( $wpdb->prepare("UPDATE {$db_prefix_primary}options set option_value = %s where option_name = 'stacked_sites'", $stacked_sites_serialize) );
+        }
+
+        // 3. Duplicate Files
+        if ( ( new Configurations )->get()->files == "dedicated" ) {
+            if ( ! file_exists( ABSPATH . "content/$stacked_site_id/" ) ) {
+                mkdir( ABSPATH . "content/$stacked_site_id/", 0777, true );
+                $dest   = ABSPATH . "content/$stacked_site_id";
+                
+                if ( file_exists( $source ) ) {
                     foreach (
                         $iterator = new \RecursiveIteratorIterator(
-                         new \RecursiveDirectoryIterator($source, \RecursiveDirectoryIterator::SKIP_DOTS),
-                         \RecursiveIteratorIterator::SELF_FIRST) as $item
-                       ) {
-                         if ($item->isDir()) {
-                           mkdir($dest . DIRECTORY_SEPARATOR . $iterator->getSubPathname());
-                         } else {
-                           copy($item, $dest . DIRECTORY_SEPARATOR . $iterator->getSubPathname());
-                         }
-                       }
+                            new \RecursiveDirectoryIterator($source, \RecursiveDirectoryIterator::SKIP_DOTS),
+                            \RecursiveIteratorIterator::SELF_FIRST) as $item
+                    ) 
+                    {
+                        $subPathName = $iterator->getSubPathname();
+                        $destination_file = $dest . DIRECTORY_SEPARATOR . $subPathName;
+
+                        // 1. Handle Symlinks (Shortcuts)
+                        if ( $item->isLink() ) {
+                            // Get where the original link points
+                            $target = readlink( $item->getPathname() );
+                            // Create a new symlink at the destination pointing to the same target
+                            symlink( $target, $destination_file );
+                        }
+                        // 2. Handle Directories (mkdir)
+                        elseif ( $item->isDir() ) {
+                             if ( ! file_exists( $destination_file ) ) {
+                                mkdir( $destination_file );
+                            }
+                        } 
+                        // 3. Handle Regular Files (copy)
+                        else {
+                            copy( $item, $destination_file );
+                        }
+                    }
                 }
             }
         }
-        wp_die();
-        return;
+        
+        // Apply Domain Mapping Update if domain is set
+        if ( ! empty ( $new_domain ) ) {
+             $wpdb->query( $wpdb->prepare("UPDATE stacked_{$stacked_site_id}_options set option_value = %s where option_name = 'siteurl'", 'https://' . $new_domain) );
+             $wpdb->query( $wpdb->prepare("UPDATE stacked_{$stacked_site_id}_options set option_value = %s where option_name = 'home'", 'https://' . $new_domain) );
+        }
+
+        return array_values($stacked_sites);
+    }
+
+    // Helper to abstract the primary prefix logic used in multiple places
+    private function get_primary_prefix() {
+        global $wpdb;
+        $db_prefix = $wpdb->prefix;
+        $db_prefix_primary = ( defined( 'TABLE_PREFIX' ) ? TABLE_PREFIX : $db_prefix );
+        if ( $db_prefix_primary == "TABLE_PREFIX" ) { 
+            $db_prefix_primary = $db_prefix;
+        }
+        return $db_prefix_primary;
     }
 
     public function configurations() {
@@ -285,7 +426,8 @@ class Run {
             $admin_bar->add_menu( [
                 'id'    => 'wp-freighter-exit',
                 'title' => '<span class="ab-icon dashicons dashicons-backup"></span>Exit WP Freighter',
-                'href'  => '/wp-admin/admin-ajax.php?action=stacked_ajax&command=exitWPFreighter',
+                'href'  => '#',
+                'meta'  => [ 'onclick' => 'fetch( "' . esc_url( get_rest_url( null, 'wp-freighter/v1/exit' ) ) . '", { method: "POST", headers: { "X-WP-Nonce": "' . wp_create_nonce( 'wp_rest' ) . '" } } ).then( () => window.location.reload() ); return false;' ]
             ] );
         }
         if ( empty( $stacked_site_id ) ) {
@@ -308,7 +450,6 @@ class Run {
     }
     
     public function activate() {
-
         // Add default configurations right after $table_prefix
         $lines_to_add = [
             '',
@@ -317,7 +458,6 @@ class Run {
             'if ( defined( \'WP_CLI\' ) && WP_CLI ) { $stacked_site_id = getenv( \'STACKED_SITE_ID\' ); }',
             'if ( ! empty( $stacked_site_id ) ) { define( \'TABLE_PREFIX\', $table_prefix ); $table_prefix = "stacked_{$stacked_site_id}_"; }',
         ];
-
         if ( file_exists( ABSPATH . "wp-config.php" ) ) {
             $wp_config_file = ABSPATH . "wp-config.php";
         }
@@ -333,7 +473,6 @@ class Run {
 
         $wp_config_content = file_get_contents( $wp_config_file );
         $working           = explode( "\n", $wp_config_content );
-
         // Remove WP Freighter configs. Any lines containing '/* WP Freighter */', 'stacked_site_id' and '$stacked_mappings'.
         foreach( $working as $key => $line ) {
             if ( strpos( $line, '/* WP Freighter */' ) !== false || strpos( $line, 'stacked_site_id' ) !== false || strpos( $line, '$stacked_mappings' ) !== false ) {
@@ -376,18 +515,14 @@ class Run {
 
         // Updated content
         $updated = array_merge( array_slice( $working, 0, $table_prefix_line + 1, true ), $lines_to_add, array_slice( $working, $table_prefix_line + 1, count( $working ), true ) );
-
         // Save changes to wp-config.php
         $results = @file_put_contents( $wp_config_file, implode( "\n", $updated ) );
-
         if ( empty( $results ) ) {
             ( new Configurations )->update_config( "unable_to_save", $lines_to_add );
         }
-
     }
 
     public function deactivate() {
-
         if ( file_exists( ABSPATH . "wp-config.php" ) ) {
             $wp_config_file = ABSPATH . "wp-config.php";
         }
@@ -402,7 +537,6 @@ class Run {
 
         $wp_config_content = file_get_contents( $wp_config_file );
         $working           = explode( "\n", $wp_config_content );
-
         // Remove WP Freighter configs. Any lines containing '/* WP Freighter */', 'stacked_site_id' and '$stacked_mappings'.
         foreach( $working as $key => $line ) {
             if ( strpos( $line, '/* WP Freighter */' ) !== false || strpos( $line, 'stacked_site_id' ) !== false || strpos( $line, '$stacked_mappings' ) !== false ) {
