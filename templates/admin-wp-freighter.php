@@ -241,12 +241,22 @@ input[type=text]:focus {
                 </v-row>
                 <v-row>
                 <v-col style="max-width:150px">
+                    <v-radio value="hybrid">
+                        <div slot="label"><strong>Hybrid</strong></div>
+                    </v-radio>
+                </v-col>
+                <v-col>
+                    Shared <code>plugins</code> and <code>themes</code>, but unique <code>uploads</code> folder stored under <code>/content/(site-id)/uploads/</code>.
+                </v-col>
+                </v-row>
+                <v-row>
+                <v-col style="max-width:150px">
                     <v-radio value="dedicated">
                         <div slot="label"><strong>Dedicated</strong></div>
                     </v-radio>
                 </v-col>
                 <v-col>
-                    Each site will have it's unique <code>/wp-content/</code> folder stored under <code>/content/(site-id)/</code>.
+                    Each site will have its unique <code>/wp-content/</code> folder stored under <code>/content/(site-id)/</code>.
                 </v-col>
                 </v-row>
                 </v-radio-group>

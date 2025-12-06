@@ -10,6 +10,9 @@ class Run {
             add_filter('https_local_ssl_verify', '__return_false');
             add_filter('http_request_host_is_external', '__return_true');
         }
+        if ( defined( 'WP_CLI' ) && WP_CLI ) {
+            \WP_CLI::add_command( 'freighter', 'WPFreighter\CLI' );
+        }
         add_action( 'admin_bar_menu', [ $this, 'admin_toolbar' ], 100 );
         add_action( 'admin_menu', [ $this, 'admin_menu' ] );
         add_action( 'rest_api_init', [ $this, 'register_rest_endpoints' ] );
@@ -171,7 +174,6 @@ class Run {
         $new_site_data = (object) $params;
 
         require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
-        
         $stacked_sites = ( new Sites )->get();
         $db_prefix = $wpdb->prefix;
         $db_prefix_primary = $this->get_primary_prefix();
@@ -194,7 +196,6 @@ class Run {
             "name"            => $new_site_data->name,
             "domain"          => $new_site_data->domain
         ];
-
         $stacked_sites_serialize = serialize( $stacked_sites );
         
         $results = $wpdb->get_results("select option_id from {$db_prefix_primary}options where option_name = 'stacked_sites'");
@@ -206,13 +207,26 @@ class Run {
 
         ( new Configurations )->refresh_configs();
 
-        // Prepare new content folder if needed
-        if ( ( new Configurations )->get()->files == "dedicated" ) {
-            if ( ! file_exists( ABSPATH . "content/$stacked_site_id/" ) ) {
-                mkdir( ABSPATH . "content/$stacked_site_id/themes/", 0777, true );
-                mkdir( ABSPATH . "content/$stacked_site_id/plugins/", 0777, true );
-                mkdir( ABSPATH . "content/$stacked_site_id/uploads/", 0777, true );
+        $files_mode = ( new Configurations )->get()->files;
 
+        // Prepare content folders for Dedicated OR Hybrid
+        if ( $files_mode == "dedicated" || $files_mode == "hybrid" ) {
+            $site_content_path = ABSPATH . "content/$stacked_site_id";
+
+            // Always create uploads directory for both modes
+            // (mkdir with recursive=true will create the parent /content/ID/ folder automatically)
+            if ( ! file_exists( "$site_content_path/uploads/" ) ) {
+                mkdir( "$site_content_path/uploads/", 0777, true );
+            }
+
+            // Only create themes/plugins if fully Dedicated
+            if ( $files_mode == "dedicated" ) {
+                if ( ! file_exists( "$site_content_path/themes/" ) ) {
+                    mkdir( "$site_content_path/themes/", 0777, true );
+                }
+                if ( ! file_exists( "$site_content_path/plugins/" ) ) {
+                    mkdir( "$site_content_path/plugins/", 0777, true );
+                }
                 // Kinsta Compatibility
                 $this->copy_kinsta_assets( $stacked_site_id );
             }
@@ -225,7 +239,6 @@ class Run {
         ob_start();
         $response = wp_install( $new_site_data->title, $new_site_data->username, $new_site_data->email, true, '', wp_slash( $new_site_data->password ), "en" );
         ob_end_clean();
-        
         if ( ! empty ( $new_site_data->domain ) ) {
             $wpdb->query( $wpdb->prepare("UPDATE stacked_{$stacked_site_id}_options set option_value = %s where option_name = 'siteurl'", 'https://' . $new_site_data->domain) );
             $wpdb->query( $wpdb->prepare("UPDATE stacked_{$stacked_site_id}_options set option_value = %s where option_name = 'home'", 'https://' . $new_site_data->domain) );
@@ -237,42 +250,42 @@ class Run {
         $wpdb->query( "UPDATE {$new_table_prefix}options set `option_name` = 'stacked_{$stacked_site_id}_user_roles' WHERE `option_name` = '{$db_prefix}user_roles'" );
         
         // Check if default theme is installed on new site
-        $default_theme_path = ABSPATH . "content/$stacked_site_id/themes/" . WP_DEFAULT_THEME ."/";
-        if ( ! file_exists( $default_theme_path ) ) {
-            require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
-            include_once ABSPATH . 'wp-admin/includes/theme.php';
+        
+        if ( $files_mode == "dedicated" ) {
+            $default_theme_path = ABSPATH . "content/$stacked_site_id/themes/" . WP_DEFAULT_THEME ."/";
+            if ( ! file_exists( $default_theme_path ) ) {
+                require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+                include_once ABSPATH . 'wp-admin/includes/theme.php';
 
-            // Remove hooks that trigger update checks
-            remove_action( 'upgrader_process_complete', [ 'Language_Pack_Upgrader', 'async_upgrade' ], 20 );
-            remove_action( 'upgrader_process_complete', 'wp_version_check', 10 );
-            remove_action( 'upgrader_process_complete', 'wp_update_plugins', 10 );
-            remove_action( 'upgrader_process_complete', 'wp_update_themes', 10 );
-
-            // FIX: Use an anonymous class to silence the upgrader output completely
-            // This overrides feedback, header, and footer methods to prevent HTML generation.
-            $skin = new class extends \WP_Upgrader_Skin {
-                public function feedback( $string, ...$args ) { /* Silence */ }
-                public function header() { /* Silence */ }
-                public function footer() { /* Silence */ }
-                public function error( $errors ) { /* Silence */ }
-            };
-            
-            $upgrader = new \Theme_Upgrader( $skin );
-            
-            $api      = themes_api( 'theme_information', [ 'slug'  => WP_DEFAULT_THEME, 'fields' => [ 'sections' => false ] ] );
-            
-            // No ob_start/ob_clean needed anymore because the skin generates no output
-            $result   = $upgrader->run( [
-                'package'           => $api->download_link,
-                'destination'       => $default_theme_path,
-                'clear_destination' => false,
-                'clear_working'     => true,
-                'hook_extra'        => [
-                    'type'   => 'theme',
-                    'action' => 'install',
-                ],
-            ] );
+                // Remove hooks that trigger update checks
+                remove_action( 'upgrader_process_complete', [ 'Language_Pack_Upgrader', 'async_upgrade' ], 20 );
+                remove_action( 'upgrader_process_complete', 'wp_version_check', 10 );
+                remove_action( 'upgrader_process_complete', 'wp_update_plugins', 10 );
+                remove_action( 'upgrader_process_complete', 'wp_update_themes', 10 );
+                // FIX: Use an anonymous class to silence the upgrader output completely
+                $skin = new class extends \WP_Upgrader_Skin {
+                    public function feedback( $string, ...$args ) { /* Silence */ }
+                    public function header() { /* Silence */ }
+                    public function footer() { /* Silence */ }
+                    public function error( $errors ) { /* Silence */ }
+                };
+                $upgrader = new \Theme_Upgrader( $skin );
+                
+                $api      = themes_api( 'theme_information', [ 'slug'  => WP_DEFAULT_THEME, 'fields' => [ 'sections' => false ] ] );
+                // No ob_start/ob_clean needed anymore because the skin generates no output
+                $result   = $upgrader->run( [
+                    'package'           => $api->download_link,
+                    'destination'       => $default_theme_path,
+                    'clear_destination' => false,
+                    'clear_working'     => true,
+                    'hook_extra'        => [
+                        'type'   => 'theme',
+                        'action' => 'install',
+                    ],
+                ] );
+            }
         }
+        
         $table_prefix = $original_table_prefix;
         wp_set_wpdb_vars();
         return Sites::fetch();
