@@ -140,7 +140,6 @@ input[type=text]:focus {
                     hide-default-header
                     hide-default-footer
                     flat
-                    no-data-text="You have no stacked sites."
                 >
                 <template v-slot:header="{ props: { headers } }">
                     <thead>
@@ -217,6 +216,11 @@ input[type=text]:focus {
                                 </template>
                                 <span>Delete site</span>
                             </v-tooltip>
+                        </td>
+                    </tr>
+                    <tr v-if="items.length === 0">
+                        <td colspan="6" class="text-center grey--text pa-4">
+                            You have no stacked sites.
                         </td>
                     </tr>
                     </tbody>
