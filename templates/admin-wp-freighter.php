@@ -601,13 +601,19 @@ new Vue({
         switchTo( stacked_site_id ) {
             axios.post( wpFreighterSettings.root + 'switch', {
                 'site_id': stacked_site_id,
-			} )
-				.then( response => {
-                        location.reload()
-                    })
-                 .catch( error => {
-                        console.log( error )
-                    });
+            } )
+            .then( response => {
+                // If a login URL is returned, redirect to it to re-authenticate
+                if ( response.data.url ) {
+                    window.location.href = response.data.url;
+                } else {
+                    // Fallback
+                    location.reload();
+                }
+            })
+            .catch( error => {
+                console.log( error )
+            });
         },
         autoLogin( item ) {
             this.loading = true;
