@@ -1,27 +1,147 @@
+# WP Freighter
 
-WP Freighter allows you to efficiently run many WordPress sites from a single WordPress installation.
+**Multi-tenant mode for WordPress.**
 
-## Description
+WP Freighter allows you to efficiently run many WordPress sites from a single WordPress installation. It modifies your WordPress configuration to support multiple database prefixes and content directories, allowing for instant provisioning and lightweight management.
 
-Lightning Fast ⚡ - No need to wait to deploy to separate environments. Simply one click to clone your existing site or add a new WordPress site. Only database tables are cloned or created.
+## Features
 
-Lightweight Management - WordPress is unlocked with domain mapping and unique wp-content folders. Run many, completely unique, WordPress sites from a single WordPress installation.
+*   **Lightning Fast Provisioning ⚡** - Spin up new environments in seconds. Only database tables are created or cloned.
+*   **One-Click Cloning** - Clone your main site or *any* existing stacked site to a new environment. Perfect for staging or testing.
+*   **Zero-Config Sandbox** - Safely troubleshoot maintenance issues by cloning your live site to a sandbox piggybacked onto your existing installation.
+*   **Flexible File Isolation** - Choose how your sites share files:
+    *   **Shared:** All sites share plugins, themes, and uploads.
+    *   **Hybrid:** Shared plugins/themes, but unique uploads folder.
+    *   **Dedicated:** Completely unique `wp-content` directory for every site.
+*   **Domain Mapping** - Map unique custom domains to specific stacked sites or use the parent domain for easy access.
+*   **Magic Login** - Generate one-time auto-login links to jump between site dashboards instantly.
 
-Painless Maintenance Sandbox - With only WordPress administrator access, easily clone your live site to a safe sandbox piggybacked onto your live site. Switch into the sandbox and begin troubleshooting maintenance related issues. When done, exit back to the live site.
-
-Watch an overview of WP Freighter: https://vimeo.com/456300437. Endless possibilities ☄️.
+---
 
 ## Installation
 
-1. Drag and drop `wp-freighter.zip` on WordPress /wp-admin/ under Plugins -> Add New -> Upload Plugin.
-2. Activate the plugin through the 'Plugins' menu in WordPress
+1.  Download the `wp-freighter.zip` release.
+2.  Upload to your WordPress installation via **Plugins -> Add New -> Upload Plugin**.
+3.  Activate the plugin.
+4.  Navigate to **Tools -> WP Freighter** to configure your environment.
+
+> **Note:** WP Freighter must modify your `wp-config.php` file to function. If your host locks this file, you will be provided with a code snippet to add manually.
+
+---
+
+## WP-CLI Integration
+
+WP Freighter includes a robust CLI interface for managing sites via the terminal.
+
+### Global Management
+```bash
+# View system info, current mode, and site count
+wp freighter info
+
+# List all stacked sites
+wp freighter list
+
+# Update file storage mode (shared|hybrid|dedicated)
+wp freighter files set dedicated
+
+# Toggle domain mapping (on|off)
+wp freighter domain set on
+```
+
+### Site Management
+```bash
+# Create a new empty site
+wp freighter create --title="My New Site" --name="Client A" --domain="client-a.test"
+
+# Clone the main site to a new staging environment
+wp freighter clone main --name="Staging"
+
+# Clone a specific stacked site (ID 2) to a new site
+wp freighter clone 2 --name="Dev Copy"
+
+# Generate a magic login URL for Site ID 3
+wp freighter login 3
+
+# Delete a site
+wp freighter delete 4
+```
+
+---
+
+## Developer API (`WPFreighter\Site`)
+
+You can programmatically manage stacked sites using the `WPFreighter\Site` class.
+
+### Create a Site
+```php
+$args = [
+    'title'    => 'New Project',
+    'name'     => 'Project Alpha',     // Internal label
+    'domain'   => 'project-alpha.com', // Optional
+    'username' => 'admin',
+    'email'    => 'admin@example.com',
+    'password' => 'secure_password_123' // Optional, auto-generated if omitted
+];
+
+$site = \WPFreighter\Site::create( $args );
+
+if ( is_wp_error( $site ) ) {
+    // Handle error
+} else {
+    echo "Created site ID: " . $site['stacked_site_id'];
+}
+```
+
+### Clone a Site
+```php
+// Clone Main Site
+$staging = \WPFreighter\Site::clone( 'main', [ 'name' => 'Staging Environment' ] );
+
+// Clone Stacked Site ID 5
+$copy = \WPFreighter\Site::clone( 5, [ 'name' => 'Copy of Site 5' ] );
+```
+
+### Generate Login Link
+```php
+// Get a one-time login URL for Site ID 2
+$login_url = \WPFreighter\Site::login( 2 );
+
+// Redirect to a specific page after login
+$edit_url = \WPFreighter\Site::login( 2, 'post-new.php' );
+```
+
+### Delete a Site
+```php
+\WPFreighter\Site::delete( 4 );
+```
+
+---
+
+## Architecture & Modes
+
+WP Freighter works by dynamically swapping the `$table_prefix` in `wp-config.php` based on the requested domain or a cookie. It offers three distinct file modes to suit your workflow:
+
+1.  **Shared Mode:**
+    *   Single `/wp-content/` directory.
+    *   All sites share the exact same plugins, themes, and media library.
+    *   *Best for:* Multilingual networks or brand variations using the exact same assets.
+
+2.  **Hybrid Mode:**
+    *   Shared `/plugins/` and `/themes/`.
+    *   Unique `/uploads/` directory stored in `/content/<id>/uploads/`.
+    *   *Best for:* Agencies managing multiple client sites with a standardized plugin stack but different media.
+
+3.  **Dedicated Mode:**
+    *   Completely unique `/wp-content/` directory stored in `/content/<id>/`.
+    *   Each site has its own plugins, themes, and uploads.
+    *   *Best for:* True multi-tenancy, snapshots, and distinct staging environments.
 
 ## Known Limitations ⚠️
 
-- **Requires customization to wp-config.php for compatibility.**
+*   **`wp-config.php` Access:** The plugin requires write access to `wp-config.php`. If your host prevents this, manual configuration is required.
+*   **Root Files:** Files in the root directory (like `robots.txt` or `.htaccess`) are shared across all sites.
+*   **Cron Jobs:** WP-Cron relies on traffic to trigger. For low-traffic stacked sites, consider setting up system cron jobs triggered via WP-CLI.
 
-  In order for WP Freighter to work, it needs to modify the wp-config.php file. This will happen automatically however if the file is locked down then WP Freighter will provide the necessary configurations for you to provide to your web host. If modifying wp-confg.php is not allowed by the web host provider then WP Freighter won’t be able to run.
+## License
 
-- **Root level files are shared.**
-
-  WP Freighter makes minimal changes to wp-config.php in order to allow for many WordPress sites on a single WordPress installation. Unfortunately that means root level files are shared between all sites. If root level files are needed I recommend coping files from the root `/` to `/content/<stacked-id>/` and configure Redirection plugin to handle the redirection.
+MIT License
