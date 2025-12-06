@@ -146,6 +146,7 @@ input[type=text]:focus {
                     <thead>
                     <tr>
                         <th></th>
+                        <th>ID</th>
                         <th v-show="configurations.domain_mapping == 'off'">Label</th>
                         <th v-show="configurations.domain_mapping == 'on'">Domain Mapping</th>
                         <th v-show="configurations.files == 'dedicated'">Files</th>
@@ -160,6 +161,9 @@ input[type=text]:focus {
                         <td width="130px">
                             <v-btn v-if="configurations.domain_mapping == 'off'" small color="primary" @click="switchTo( item.stacked_site_id )">Switch To</v-btn>
                             <v-btn v-else color="primary" :href="`//${item.domain}`" small target="_new"><v-icon small>mdi-open-in-new</v-icon> Open</v-btn>
+                        </td>
+                        <td width="58px">
+                            <code>{{ item.stacked_site_id }}</code>
                         </td>
                         <td v-show="configurations.domain_mapping == 'off'">
                             <v-text-field v-model="item.name" label="" value="item.name" @input="changeForm()"></v-text-field>
@@ -399,6 +403,7 @@ new Vue({
         stacked_sites: <?php echo ( new WPFreighter\Sites )->get_json(); ?>,
         headers: [
           { text: '', value: 'stacked_site_id' },
+          { text: 'ID', value: 'id' },
           { text: 'Label', value: 'name' },
           { text: 'Domain', value: 'domain' },
           { text: 'Created At', value: 'created_at' },
