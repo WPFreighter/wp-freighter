@@ -312,4 +312,48 @@ class CLI extends WP_CLI_Command {
         WP_CLI::success( "Clone complete. New Site ID: " . $result['stacked_site_id'] );
     }
 
+    /**
+     * Generate a magic login URL for a specific site.
+     *
+     * ## OPTIONS
+     *
+     * <id>
+     * : The Stacked Site ID to login to. Use 'main' for the primary site.
+     *
+     * [--url-only]
+     * : Output only the URL (useful for piping to other commands/browsers).
+     *
+     * ## EXAMPLES
+     *
+     * wp freighter login 2
+     * wp freighter login main
+     * open $(wp freighter login 2 --url-only)
+     */
+    public function login( $args, $assoc_args ) {
+        list( $site_id ) = $args;
+        $url_only = isset( $assoc_args['url-only'] );
+
+        // Validate Site ID Exists (unless it is 'main')
+        if ( 'main' !== $site_id ) {
+            $site = Site::get( $site_id );
+            if ( empty( $site ) ) {
+                WP_CLI::error( "Site ID '{$site_id}' not found." );
+            }
+        }
+
+        // Delegate to Site Model
+        $login_url = Site::login( $site_id );
+
+        if ( is_wp_error( $login_url ) ) {
+            WP_CLI::error( "Failed to generate login URL: " . $login_url->get_error_message() );
+        }
+
+        if ( $url_only ) {
+            WP_CLI::line( $login_url );
+        } else {
+            WP_CLI::success( "Magic login URL generated:" );
+            WP_CLI::line( $login_url );
+        }
+    }
+
 }
