@@ -343,7 +343,7 @@ input[type=text]:focus {
                 <v-card-text>
                     <p>Are you sure you want to delete this site? This action cannot be undone.</p>
                     
-                    <v-alert v-if="delete_site.has_dedicated_content" type="primary" dense text icon="mdi-folder-alert">
+                    <v-alert v-if="delete_site.has_dedicated_content" color="primary" dense text icon="mdi-folder-alert">
                         <strong>Dedicated Content Folder Detected</strong><br/>
                         The following directory and its contents will be permanently deleted:
                         <div class="mt-2 mb-1"><code style="font-size:11px">{{ delete_site.path }}</code></div>
