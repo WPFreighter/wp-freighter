@@ -9,6 +9,7 @@
     const wpFreighterSettings = {
         root: "<?php echo esc_url_raw( rest_url( 'wp-freighter/v1/' ) ); ?>",
         nonce: "<?php echo wp_create_nonce( 'wp_rest' ); ?>",
+        current_site_id: "<?php echo isset($_COOKIE['stacked_site_id']) ? esc_js($_COOKIE['stacked_site_id']) : ''; ?>",
         currentUser: {
             username: "<?php echo esc_js( wp_get_current_user()->user_login ); ?>",
             email: "<?php echo esc_js( wp_get_current_user()->user_email ); ?>"
@@ -565,6 +566,11 @@ new Vue({
                 'site_id': this.delete_site.id,
             } )
             .then( response => {
+                // If we just deleted the site we are on, reload the page to exit
+                if ( this.delete_site.id == wpFreighterSettings.current_site_id ) {
+                    location.reload();
+                    return;
+                }
                 this.stacked_sites = response.data;
                 this.loading = false;
                 this.snackbarText = "Site deleted successfully.";

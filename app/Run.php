@@ -130,7 +130,6 @@ class Run {
 
         $stacked_sites = ( new Sites )->get();
         $db_prefix_primary = $this->get_primary_prefix();
-
         // Remove from array
         foreach( $stacked_sites as $key => $item ) {
             if ( $site_id_to_delete == $item['stacked_site_id'] ) {
@@ -141,7 +140,6 @@ class Run {
         // Save Options
         $stacked_sites_serialize = serialize( $stacked_sites );
         $wpdb->query( $wpdb->prepare( "UPDATE {$db_prefix_primary}options set option_value = %s where option_name = 'stacked_sites'", $stacked_sites_serialize ) );
-
         // Drop Tables
         if ( ! empty ( $site_id_to_delete ) ) {
             $site_table_prefix = "stacked_{$site_id_to_delete}_";
@@ -160,8 +158,13 @@ class Run {
             }
         }
 
+        // If we are deleting the site we are currently viewing, kill the session cookie
+        if ( isset( $_COOKIE['stacked_site_id'] ) && $_COOKIE['stacked_site_id'] == $site_id_to_delete ) {
+            setcookie( 'stacked_site_id', null, -1, '/' );
+            unset( $_COOKIE[ "stacked_site_id" ] );
+        }
+
         ( new Configurations )->refresh_configs();
-        
         // Return updated list
         return array_values($stacked_sites);
     }
