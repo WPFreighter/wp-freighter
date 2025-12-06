@@ -171,20 +171,23 @@ class Run {
 
     public function new_site( $request ) {
         global $wpdb, $table_prefix;
-        $original_table_prefix = $table_prefix;
 
-        $params = $request->get_json_params();
-        $new_site_data = (object) $params;
+        $original_table_prefix = $table_prefix;
+        $params                = $request->get_json_params();
+        $new_site_data         = (object) $params;
 
         require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
-        $stacked_sites = ( new Sites )->get();
-        $db_prefix = $wpdb->prefix;
+        
+        $stacked_sites     = ( new Sites )->get();
         $db_prefix_primary = $this->get_primary_prefix();
 
         $current_stacked_ids = array_column( $stacked_sites, "stacked_site_id" );
-        $stacked_site_id     = ( empty( $current_stacked_ids ) ? 1 : (int) max( $current_stacked_ids ) + 1 );
-        $new_table_prefix    = "stacked_{$stacked_site_id}_";
         
+        // Security: Force integer casting
+        $stacked_site_id  = ( empty( $current_stacked_ids ) ? 1 : (int) max( $current_stacked_ids ) + 1 );
+        $new_table_prefix = "stacked_{$stacked_site_id}_";
+        
+        // Drop existing tables for this specific prefix if they exist (cleanup)
         $tables = array_column( $wpdb->get_results("show tables"), "Tables_in_". DB_NAME );
         foreach ( $tables as $table ) {
             if ( substr( $table, 0, strlen( $new_table_prefix ) ) != $new_table_prefix ) {
@@ -193,15 +196,17 @@ class Run {
             $wpdb->query( "DROP TABLE IF EXISTS $table" );
         }
 
+        // Register site in DB immediately
         $stacked_sites[] = [
             "stacked_site_id" => $stacked_site_id,
             "created_at"      => strtotime("now"),
-            "name"            => $new_site_data->name,
-            "domain"          => $new_site_data->domain
+            "name"            => sanitize_text_field( $new_site_data->name ),
+            "domain"          => sanitize_text_field( $new_site_data->domain )
         ];
+
         $stacked_sites_serialize = serialize( $stacked_sites );
+        $results = $wpdb->get_results( "select option_id from {$db_prefix_primary}options where option_name = 'stacked_sites'" );
         
-        $results = $wpdb->get_results("select option_id from {$db_prefix_primary}options where option_name = 'stacked_sites'");
         if ( empty( $results ) ) {
             $wpdb->query( $wpdb->prepare( "INSERT INTO {$db_prefix_primary}options ( option_name, option_value) VALUES ( 'stacked_sites', %s )", $stacked_sites_serialize ) );
         } else {
@@ -216,13 +221,10 @@ class Run {
         if ( $files_mode == "dedicated" || $files_mode == "hybrid" ) {
             $site_content_path = ABSPATH . "content/$stacked_site_id";
 
-            // Always create uploads directory for both modes
-            // (mkdir with recursive=true will create the parent /content/ID/ folder automatically)
             if ( ! file_exists( "$site_content_path/uploads/" ) ) {
                 mkdir( "$site_content_path/uploads/", 0777, true );
             }
 
-            // Only create themes/plugins if fully Dedicated
             if ( $files_mode == "dedicated" ) {
                 if ( ! file_exists( "$site_content_path/themes/" ) ) {
                     mkdir( "$site_content_path/themes/", 0777, true );
@@ -235,62 +237,70 @@ class Run {
             }
         }
 
-        // Install WordPress to new table prefix
-        $table_prefix = $new_table_prefix;
-        wp_set_wpdb_vars();
+        try {
+            // Switch to new prefix
+            $table_prefix = $new_table_prefix;
+            wp_set_wpdb_vars();
 
-        ob_start();
-        $response = wp_install( $new_site_data->title, $new_site_data->username, $new_site_data->email, true, '', wp_slash( $new_site_data->password ), "en" );
-        ob_end_clean();
-        if ( ! empty ( $new_site_data->domain ) ) {
-            $wpdb->query( $wpdb->prepare("UPDATE stacked_{$stacked_site_id}_options set option_value = %s where option_name = 'siteurl'", 'https://' . $new_site_data->domain) );
-            $wpdb->query( $wpdb->prepare("UPDATE stacked_{$stacked_site_id}_options set option_value = %s where option_name = 'home'", 'https://' . $new_site_data->domain) );
-        }
+            // Run Install
+            ob_start();
+            $response = wp_install( $new_site_data->title, $new_site_data->username, $new_site_data->email, true, '', wp_slash( $new_site_data->password ), "en" );
+            ob_end_clean();
 
-        // Activate WP Freighter
-        $wpdb->query( "UPDATE {$new_table_prefix}options set `option_value` = 'a:1:{i:0;s:23:\"wp-freighter/wp-freighter.php\";}' WHERE `option_name` = 'active_plugins'" );
-        // Fix permissions
-        $wpdb->query( "UPDATE {$new_table_prefix}options set `option_name` = 'stacked_{$stacked_site_id}_user_roles' WHERE `option_name` = '{$db_prefix}user_roles'" );
-        
-        // Check if default theme is installed on new site
-        
-        if ( $files_mode == "dedicated" ) {
-            $default_theme_path = ABSPATH . "content/$stacked_site_id/themes/" . WP_DEFAULT_THEME ."/";
-            if ( ! file_exists( $default_theme_path ) ) {
-                require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
-                include_once ABSPATH . 'wp-admin/includes/theme.php';
-
-                // Remove hooks that trigger update checks
-                remove_action( 'upgrader_process_complete', [ 'Language_Pack_Upgrader', 'async_upgrade' ], 20 );
-                remove_action( 'upgrader_process_complete', 'wp_version_check', 10 );
-                remove_action( 'upgrader_process_complete', 'wp_update_plugins', 10 );
-                remove_action( 'upgrader_process_complete', 'wp_update_themes', 10 );
-                // FIX: Use an anonymous class to silence the upgrader output completely
-                $skin = new class extends \WP_Upgrader_Skin {
-                    public function feedback( $string, ...$args ) { /* Silence */ }
-                    public function header() { /* Silence */ }
-                    public function footer() { /* Silence */ }
-                    public function error( $errors ) { /* Silence */ }
-                };
-                $upgrader = new \Theme_Upgrader( $skin );
-                
-                $api      = themes_api( 'theme_information', [ 'slug'  => WP_DEFAULT_THEME, 'fields' => [ 'sections' => false ] ] );
-                // No ob_start/ob_clean needed anymore because the skin generates no output
-                $result   = $upgrader->run( [
-                    'package'           => $api->download_link,
-                    'destination'       => $default_theme_path,
-                    'clear_destination' => false,
-                    'clear_working'     => true,
-                    'hook_extra'        => [
-                        'type'   => 'theme',
-                        'action' => 'install',
-                    ],
-                ] );
+            if ( ! empty ( $new_site_data->domain ) ) {
+                $domain = 'https://' . sanitize_text_field( $new_site_data->domain );
+                $wpdb->query( $wpdb->prepare("UPDATE stacked_{$stacked_site_id}_options set option_value = %s where option_name = 'siteurl'", $domain ) );
+                $wpdb->query( $wpdb->prepare("UPDATE stacked_{$stacked_site_id}_options set option_value = %s where option_name = 'home'", $domain ) );
             }
+
+            // Activate WP Freighter on the new site
+            $wpdb->query( "UPDATE {$new_table_prefix}options set `option_value` = 'a:1:{i:0;s:23:\"wp-freighter/wp-freighter.php\";}' WHERE `option_name` = 'active_plugins'" );
+            
+            // Fix permissions (copy from primary prefix to new stacked prefix)
+            $wpdb->query( "UPDATE {$new_table_prefix}options set `option_name` = 'stacked_{$stacked_site_id}_user_roles' WHERE `option_name` = '{$wpdb->prefix}user_roles'" );
+
+            // Check if default theme is installed on new site
+            if ( $files_mode == "dedicated" ) {
+                $default_theme_path = ABSPATH . "content/$stacked_site_id/themes/" . WP_DEFAULT_THEME ."/";
+                
+                if ( ! file_exists( $default_theme_path ) ) {
+                    
+                    include_once ABSPATH . 'wp-admin/includes/theme.php';
+
+                    // Remove hooks that trigger update checks
+                    remove_action( 'upgrader_process_complete', [ 'Language_Pack_Upgrader', 'async_upgrade' ], 20 );
+                    remove_action( 'upgrader_process_complete', 'wp_version_check', 10 );
+                    remove_action( 'upgrader_process_complete', 'wp_update_plugins', 10 );
+                    remove_action( 'upgrader_process_complete', 'wp_update_themes', 10 );
+
+                    // Call the helper method (which loads the class and returns the object)
+                    $skin     = $this->get_silent_skin();
+                    $upgrader = new \Theme_Upgrader( $skin );
+                    
+                    $api = themes_api( 'theme_information', [ 'slug'  => WP_DEFAULT_THEME, 'fields' => [ 'sections' => false ] ] );
+                    
+                    if ( ! is_wp_error( $api ) ) {
+                        $upgrader->run( [
+                            'package'           => $api->download_link,
+                            'destination'       => $default_theme_path,
+                            'clear_destination' => false,
+                            'clear_working'     => true,
+                            'hook_extra'        => [
+                                'type'   => 'theme',
+                                'action' => 'install',
+                            ],
+                        ] );
+                    }
+                }
+            }
+
+        } catch ( \Exception $e ) {
+            error_log( "WP Freighter Site Creation Error: " . $e->getMessage() );
+        } finally {
+            $table_prefix = $original_table_prefix;
+            wp_set_wpdb_vars();
         }
-        
-        $table_prefix = $original_table_prefix;
-        wp_set_wpdb_vars();
+
         return Sites::fetch();
     }
 
@@ -781,6 +791,23 @@ EOD;
         $final_url = $login_url . '?' . http_build_query( $query_args );
 
         return [ 'url' => $final_url ];
+    }
+
+    /**
+     * Helper to get a silent upgrader skin.
+     */
+    private function get_silent_skin() {
+        if ( ! class_exists( 'WP_Upgrader_Skin' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+        }
+
+        // Return an anonymous class instance
+        return new class extends \WP_Upgrader_Skin {
+            public function feedback( $string, ...$args ) { /* Silence */ }
+            public function header() { /* Silence */ }
+            public function footer() { /* Silence */ }
+            public function error( $errors ) { /* Silence */ }
+        };
     }
 
 }
