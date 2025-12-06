@@ -109,7 +109,7 @@ class Run {
 
     public function switch_to( $request ) {
         $params = $request->get_json_params();
-        $site_id = $params['site_id'];
+        $site_id = (int) $params['site_id'];
 
         setcookie( 'stacked_site_id', $site_id, time() + 31536000, '/' );
         $_COOKIE[ "stacked_site_id" ] = $site_id;
@@ -126,7 +126,7 @@ class Run {
     public function delete_site( $request ) {
         global $wpdb;
         $params = $request->get_json_params();
-        $site_id_to_delete = $params['site_id'];
+        $site_id_to_delete = (int) $params['site_id'];
 
         $stacked_sites = ( new Sites )->get();
         $db_prefix_primary = $this->get_primary_prefix();
@@ -624,7 +624,7 @@ class Run {
 
     public function get_site_stats( $request ) {
         $params = $request->get_json_params();
-        $site_id = $params['site_id'];
+        $site_id = (int) $params['site_id'];
         
         $path = ABSPATH . "content/$site_id/";
         
