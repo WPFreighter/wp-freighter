@@ -56,9 +56,8 @@ input[type=text]:focus {
         <v-row>
         <v-col x12 class="mr-4 mt-4">
             <v-card>
-            <v-overlay absolute :value="loading" class="align-start">
-                <div style="height: 100px;"></div>
-                <v-progress-circular size="128" color="white" indeterminate class="mt-16"></v-progress-circular>
+            <v-overlay :value="loading" z-index="5">
+                <v-progress-circular size="64" color="white" indeterminate></v-progress-circular>
             </v-overlay>
             <v-toolbar flat>
                 <v-toolbar-title>WP Freighter</v-toolbar-title>
