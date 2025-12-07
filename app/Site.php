@@ -289,24 +289,23 @@ class Site {
      */
     public static function login( $site_id, $redirect_to = '' ) {
         global $wpdb;
-        
-        // 1. Determine Prefix
+
+        // 1. Determine Target DB Prefix
         if ( 'main' === $site_id ) {
-            $prefix = self::get_primary_prefix();
+            $target_prefix = self::get_primary_prefix();
         } else {
             $site_id = (int) $site_id;
-            $prefix  = "stacked_{$site_id}_";
+            $target_prefix  = "stacked_{$site_id}_";
         }
         
-        $meta_table = $prefix . "usermeta";
-        $cap_key    = $prefix . "capabilities";
+        $meta_table = $target_prefix . "usermeta";
+        $cap_key    = $target_prefix . "capabilities";
         
-        // 2. Find an Admin user
+        // 2. Find Admin (IN TARGET DB)
         $user_id = $wpdb->get_var( "SELECT user_id FROM $meta_table WHERE meta_key = '$cap_key' AND meta_value LIKE '%administrator%' LIMIT 1" );
-
         if ( ! $user_id ) return new \WP_Error( 'no_admin', 'No administrator found.' );
 
-        // 3. Set Token
+        // 3. Generate Token (IN TARGET DB)
         $token = sha1( wp_generate_password() );
         $existing = $wpdb->get_var( $wpdb->prepare( "SELECT umeta_id FROM $meta_table WHERE user_id = %d AND meta_key = 'captaincore_login_token'", $user_id ) );
 
@@ -316,21 +315,41 @@ class Site {
             $wpdb->query( $wpdb->prepare( "INSERT INTO $meta_table (user_id, meta_key, meta_value) VALUES (%d, 'captaincore_login_token', %s)", $user_id, $token ) );
         }
 
-        // 4. Ensure Helper
+        // 4. Ensure Helper Plugin Exists
         if ( 'main' !== $site_id ) {
             self::ensure_helper_plugin( $site_id );
         }
 
         // 5. Build URL
-        $site_url = $wpdb->get_var( "SELECT option_value FROM {$prefix}options WHERE option_name = 'siteurl'" );
+        $configurations = ( new Configurations )->get();
+        $domain_mapping_on = ( isset($configurations->domain_mapping) && $configurations->domain_mapping === 'on' );
+
+        // Get Base URL
+        if ( 'main' === $site_id || ! $domain_mapping_on ) {
+            $url_prefix = self::get_primary_prefix();
+        } else {
+            $url_prefix = $target_prefix;
+        }
+        
+        $site_url = $wpdb->get_var( "SELECT option_value FROM {$url_prefix}options WHERE option_name = 'siteurl'" );
         $site_url = rtrim( $site_url, '/' );
 
-        $query_args = [
-            'user_id' => $user_id,
-            'captaincore_login_token' => $token
-        ];
+        // [CRITICAL CHANGE] Logic to bypass Helper Plugin on first hit
+        if ( 'main' !== $site_id && ! $domain_mapping_on ) {
+            // Use special params that the Helper Plugin DOES NOT recognize
+            $query_args = [
+                'freighter_switch' => $site_id,
+                'freighter_user'   => $user_id,
+                'freighter_token'  => $token
+            ];
+        } else {
+            // Standard Params for direct login
+            $query_args = [
+                'user_id'                 => $user_id,
+                'captaincore_login_token' => $token
+            ];
+        }
 
-        // Append redirect_to if provided
         if ( ! empty( $redirect_to ) ) {
             $query_args['redirect_to'] = $redirect_to;
         }

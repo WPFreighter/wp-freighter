@@ -404,18 +404,46 @@ class Run {
 
     public function handle_auto_login() {
         global $pagenow;
+
+        // 1. Handle Context Switch
+        if ( isset( $_GET['freighter_switch'] ) ) {
+            $site_id = (int) $_GET['freighter_switch'];
+            $user_id = (int) $_GET['freighter_user'];
+            $token   = $_GET['freighter_token'];
+            
+            // Set Cookie
+            $cookie_path   = defined( 'SITECOOKIEPATH' ) ? SITECOOKIEPATH : '/';
+            $cookie_domain = defined( 'COOKIE_DOMAIN' ) ? COOKIE_DOMAIN : '';
+            setcookie( 'stacked_site_id', $site_id, time() + 31536000, $cookie_path, $cookie_domain );
+            
+            // [FIXED] Use site_url() instead of admin_url()
+            // This prevents generating /wp-admin/wp-login.php
+            $login_url = add_query_arg([
+                'user_id'                 => $user_id,
+                'captaincore_login_token' => $token,
+                'redirect_to'             => isset($_GET['redirect_to']) ? $_GET['redirect_to'] : admin_url()
+            ], site_url( 'wp-login.php' ) ); 
+            
+            nocache_headers();
+            wp_safe_redirect( $login_url );
+            exit;
+        }
+
+        // 2. Standard Token Verification
         if ( 'wp-login.php' !== $pagenow || empty( $_GET['user_id'] ) || empty( $_GET['captaincore_login_token'] ) ) {
             return;
         }
 
         $user = get_user_by( 'id', (int) $_GET['user_id'] );
+        
         if ( ! $user ) {
             wp_die( 'Invalid User' );
         }
 
         $token = get_user_meta( $user->ID, 'captaincore_login_token', true );
+
         if ( ! hash_equals( $token, $_GET['captaincore_login_token'] ) ) {
-            wp_die( 'Invalid Token' );
+            wp_die( 'Invalid one-time login token.' );
         }
 
         delete_user_meta( $user->ID, 'captaincore_login_token' );
