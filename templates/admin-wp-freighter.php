@@ -55,7 +55,7 @@ input[type=text]:focus {
       <v-layout>
         <v-row>
         <v-col x12 class="mr-4 mt-4">
-            <v-card>
+            <v-card outlined rounded="0">
             <v-overlay :value="loading" z-index="5">
                 <v-progress-circular size="64" color="white" indeterminate></v-progress-circular>
             </v-overlay>
