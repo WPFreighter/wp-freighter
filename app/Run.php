@@ -292,7 +292,7 @@ class Run {
         wp_enqueue_script( 'vuetify', 'https://cdn.jsdelivr.net/npm/vuetify@2.6.13/dist/vuetify.min.js', [ 'vue' ], '2.6.13', true );
 
         // 2. Enqueue YOUR app logic file, dependent on libraries
-        wp_enqueue_script( 'wp-freighter-app', plugin_dir_url( __DIR__ ) . 'js/admin-app.js', [ 'vuetify', 'axios' ], '1.2.0', true );
+        wp_enqueue_script( 'wp-freighter-app', plugin_dir_url( dirname( __DIR__ ) . '/wp-freighter.php' ) . 'js/admin-app.js', [ 'vuetify', 'axios' ], '1.2.0', true );
 
         // 3. Localize ALL required data to your app script
         $data = [
