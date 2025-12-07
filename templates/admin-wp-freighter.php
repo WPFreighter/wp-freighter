@@ -173,7 +173,7 @@ input[type=text]:focus {
                         <td v-show="configurations.files == 'dedicated'">
                             <code>/content/{{ item.stacked_site_id }}/</code>
                         </td>
-                        <td>{{ pretty_timestamp( item.created_at ) }}</td>
+                        <td width="220px">{{ pretty_timestamp( item.created_at ) }}</td>
                         <td width="150px" class="text-right">
                             <v-tooltip bottom v-if="configurations.domain_mapping == 'on'">
                                 <template v-slot:activator="{ on, attrs }">
@@ -226,12 +226,7 @@ input[type=text]:focus {
                     </tbody>
                 </template>
                 </v-data-table>
-                <v-subheader id="files">
-                    Files
-                    <v-btn small icon class="mx-1" href="https://wpfreighter.com/support/" target="_blank" title="View Documentation">
-                        <v-icon small color="grey lighten-1">mdi-help-circle</v-icon>
-                    </v-btn>
-                </v-subheader>
+                <v-subheader id="files">Files</v-subheader>
                 <v-radio-group v-model="configurations.files" @change="changeForm()" dense class="ml-3 mt-0">
                 <v-row>
                 <v-col style="max-width:150px">
@@ -264,12 +259,7 @@ input[type=text]:focus {
                 </v-col>
                 </v-row>
                 </v-radio-group>
-                <v-subheader id="domain-mapping">
-                    Domain Mapping
-                    <v-btn small icon class="mx-1" href="https://wpfreighter.com/support/" target="_blank" title="View Documentation">
-                        <v-icon small color="grey lighten-1">mdi-help-circle</v-icon>
-                    </v-btn>
-                </v-subheader>
+                <v-subheader id="domain-mapping">Domain Mapping</v-subheader>
                 <v-radio-group v-model="configurations.domain_mapping" @change="changeForm()" dense class="ml-3 mt-0">
                 <v-row>
                 <v-col style="max-width:150px">
