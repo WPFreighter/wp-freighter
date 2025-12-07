@@ -15,6 +15,7 @@ class Run {
         }
         add_action( 'admin_bar_menu', [ $this, 'admin_toolbar' ], 100 );
         add_action( 'admin_menu', [ $this, 'admin_menu' ] );
+        add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
         add_action( 'rest_api_init', [ $this, 'register_rest_endpoints' ] );
         add_action( 'init', [ $this, 'handle_auto_login' ] );
         register_activation_hook( plugin_dir_path( __DIR__ ) . "wp-freighter.php", [ $this, 'activate' ] );
@@ -257,6 +258,42 @@ class Run {
                 'href'  => '/wp-admin/tools.php?page=wp-freighter',
             ] );
         }
+    }
+
+    public function enqueue_assets( $hook ) {
+        if ( 'tools_page_wp-freighter' !== $hook ) {
+            return;
+        }
+
+        // 1. Enqueue external libraries in the footer
+        wp_enqueue_style( 'vuetify', 'https://cdn.jsdelivr.net/npm/vuetify@2.6.13/dist/vuetify.min.css', [], '2.6.13' );
+        wp_enqueue_style( 'mdi', 'https://cdn.jsdelivr.net/npm/@mdi/font/css/materialdesignicons.min.css', [], 'latest' );
+
+        wp_enqueue_script( 'axios', 'https://cdn.jsdelivr.net/npm/axios@1.13.2/dist/axios.min.js', [], '1.13.2', true );
+        wp_enqueue_script( 'vue', 'https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.js', [], '2.7.16', true );
+        wp_enqueue_script( 'vuetify', 'https://cdn.jsdelivr.net/npm/vuetify@2.6.13/dist/vuetify.min.js', [ 'vue' ], '2.6.13', true );
+
+        // 2. Enqueue YOUR app logic file, dependent on libraries
+        wp_enqueue_script( 'wp-freighter-app', plugin_dir_url( __DIR__ ) . 'js/admin-app.js', [ 'vuetify', 'axios' ], '1.2.0', true );
+
+        // 3. Localize ALL required data to your app script
+        $data = [
+            'root'            => esc_url_raw( rest_url( 'wp-freighter/v1/' ) ),
+            'nonce'           => wp_create_nonce( 'wp_rest' ),
+            'current_site_id' => isset( $_COOKIE['stacked_site_id'] ) ? sanitize_text_field( $_COOKIE['stacked_site_id'] ) : '',
+            'currentUser'     => [
+                'username' => wp_get_current_user()->user_login,
+                'email'    => wp_get_current_user()->user_email,
+            ],
+            // Pass the dynamic PHP lists here!
+            'configurations'  => ( new Configurations )->get(),
+            'stacked_sites'   => ( new Sites )->get(),
+        ];
+
+        wp_localize_script( 'wp-freighter-app', 'wpFreighterSettings', $data );
+        
+        // 4. Set Axios Defaults (linked to the localized nonce)
+        wp_add_inline_script( 'wp-freighter-app', "axios.defaults.headers.common['X-WP-Nonce'] = wpFreighterSettings.nonce; axios.defaults.headers.common['Content-Type'] = 'application/json';", 'after' );
     }
 
     public function admin_menu() {
