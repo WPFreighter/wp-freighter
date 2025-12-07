@@ -1,5 +1,23 @@
 # Changelog
 
+## **1.3.0** - 2025-12-07
+### Added
+- **Hybrid Mode:** Introduced a new "Hybrid" file mode that shares plugins and themes across all sites while keeping the `uploads` folder unique for each site. Perfect for agencies managing standardized stacks with different media libraries.
+- **WP-CLI Integration:** Added robust CLI commands (`wp freighter`) to manage sites, clone environments, toggle file modes, and handle domain mapping via the terminal.
+- **Developer API:** Introduced the `WPFreighter\Site` class, allowing developers to programmatically create, clone, login, and delete stacked sites.
+- **Environment Support:** Added support for the `STACKED_SITE_ID` environment variable to enable context switching in CLI and server environments.
+- **Object Cache Compatibility:** Now modifies `WP_CACHE_KEY_SALT` in `wp-config.php` to ensure unique object caching for every stacked site.
+- **Storage Stats:** Added directory size calculation to the delete site dialog, providing warnings for dedicated content deletion.
+
+### Changed
+- **Architecture Refactor:** Moved core logic from `Run.php` into dedicated `Site` and `CLI` models for better maintainability.
+- **Admin Assets:** Migrated inline Vue.js logic from the PHP template to a dedicated `admin-app.js` file.
+- **Kinsta Compatibility:** Enhanced support for copying Kinsta-specific `mu-plugins` when creating sites in dedicated mode.
+
+### Fixed
+- **Database Hardening:** Implemented `$wpdb->prepare()` across all database write operations to prevent SQL injection vulnerabilities.
+- **Input Sanitization:** Added strict input sanitization (`sanitize_text_field`, `sanitize_user`) to all REST API endpoints.
+
 ## **v1.2.0** - 2025-12-05
 ### Added
 - **REST API Implementation:** Completely replaced legacy `admin-ajax` calls with secure WordPress REST API endpoints (`wp-freighter/v1`) for better stability and permission handling.
