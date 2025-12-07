@@ -45,12 +45,24 @@ class Configurations {
         global $wpdb;
         $this->configurations[ $key ] = $value;
         $configurations_serialize     = serialize( $this->configurations );
-        $results                      = $wpdb->get_results("select option_id from {$this->db_prefix_primary}options where option_name = 'stacked_configurations'");
-        if ( empty( $results ) ) {
-            $wpdb->query("INSERT INTO {$this->db_prefix_primary}options ( option_name, option_value) VALUES ( 'stacked_configurations', '$configurations_serialize' )");
+        
+        $exists = $wpdb->get_var( $wpdb->prepare( 
+            "SELECT option_id from {$this->db_prefix_primary}options where option_name = %s", 
+            'stacked_configurations' 
+        ) );
+
+        if ( ! $exists ) {
+            $wpdb->query( $wpdb->prepare( 
+                "INSERT INTO {$this->db_prefix_primary}options ( option_name, option_value) VALUES ( %s, %s )", 
+                'stacked_configurations', 
+                $configurations_serialize 
+            ) );
         } else {
-            //$wpdb->query("UPDATE {$this->db_prefix_primary}options set option_value = '$configurations_serialize' where option_name = 'stacked_configurations'");
-            $wpdb->query( $wpdb->prepare( "UPDATE {$this->db_prefix_primary}options set option_value = %s where option_name = 'stacked_configurations'", $configurations_serialize ) );
+            $wpdb->query( $wpdb->prepare( 
+                "UPDATE {$this->db_prefix_primary}options set option_value = %s where option_name = %s", 
+                $configurations_serialize, 
+                'stacked_configurations' 
+            ) );
         }
     }
 
@@ -58,11 +70,24 @@ class Configurations {
         global $wpdb;
         $this->configurations     = $configurations;
         $configurations_serialize = serialize( $configurations );
-        $results                  = $wpdb->get_results("select option_id from {$this->db_prefix_primary}options where option_name = 'stacked_configurations'");
-        if ( empty( $results ) ) {
-            $wpdb->query("INSERT INTO {$this->db_prefix_primary}options ( option_name, option_value) VALUES ( 'stacked_configurations', '$configurations_serialize' )");
+        
+        $exists = $wpdb->get_var( $wpdb->prepare( 
+            "SELECT option_id from {$this->db_prefix_primary}options where option_name = %s", 
+            'stacked_configurations' 
+        ) );
+
+        if ( ! $exists ) {
+            $wpdb->query( $wpdb->prepare( 
+                "INSERT INTO {$this->db_prefix_primary}options ( option_name, option_value) VALUES ( %s, %s )", 
+                'stacked_configurations', 
+                $configurations_serialize 
+            ) );
         } else {
-            $wpdb->query("UPDATE {$this->db_prefix_primary}options set option_value = '$configurations_serialize' where option_name = 'stacked_configurations'");
+            $wpdb->query( $wpdb->prepare( 
+                "UPDATE {$this->db_prefix_primary}options set option_value = %s where option_name = %s", 
+                $configurations_serialize, 
+                'stacked_configurations' 
+            ) );
         }
         self::refresh_configs();
     }

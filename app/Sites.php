@@ -66,33 +66,75 @@ class Sites {
 
     public function update( $sites ) {
         global $wpdb;
-
         $configurations = ( new Configurations )->get();
+
         // Refresh domain mappings when enabled
         if ( $configurations->domain_mapping == "on" ) {
             foreach( $sites as $site ) {
-                if ( $site["domain"] != "" ) {
-                    $wpdb->query("UPDATE stacked_{$site["stacked_site_id"]}_options set option_value = 'https://{$site["domain"]}' where option_name = 'siteurl'");
-                    $wpdb->query("UPDATE stacked_{$site["stacked_site_id"]}_options set option_value = 'https://{$site["domain"]}' where option_name = 'home'");
+                $site_id = (int) $site['stacked_site_id']; // Cast to integer for safety
+                
+                if ( ! empty( $site["domain"] ) ) {
+                    // Use a variable for the URL to pass to prepare()
+                    $url = 'https://' . $site["domain"]; 
+                    
+                    // Table names cannot be prepared, so we build them using the safe integer ID
+                    $table = "stacked_{$site_id}_options";
+
+                    // Use prepare() for the values
+                    $wpdb->query( $wpdb->prepare( 
+                        "UPDATE {$table} set option_value = %s where option_name = 'siteurl'", 
+                        $url 
+                    ) );
+                    $wpdb->query( $wpdb->prepare( 
+                        "UPDATE {$table} set option_value = %s where option_name = 'home'", 
+                        $url 
+                    ) );
                 }
             }
         }
+
         // Turn domain mappings off when not used
         if ( $configurations->domain_mapping == "off" ) {
-            $primary_site_url = $wpdb->get_results("SELECT option_value from {$this->db_prefix_primary}options where option_name = 'siteurl'")[0]->option_value;
-            $primary_home     = $wpdb->get_results("SELECT option_value from {$this->db_prefix_primary}options where option_name = 'home'")[0]->option_value;
+            // Use get_var() directly for cleaner code
+            $primary_site_url = $wpdb->get_var( "SELECT option_value from {$this->db_prefix_primary}options where option_name = 'siteurl'" );
+            $primary_home     = $wpdb->get_var( "SELECT option_value from {$this->db_prefix_primary}options where option_name = 'home'" );
+
             foreach( $sites as $site ) {
-                $wpdb->query("UPDATE stacked_{$site["stacked_site_id"]}_options set option_value = '{$primary_site_url}' where option_name = 'siteurl'");
-                $wpdb->query("UPDATE stacked_{$site["stacked_site_id"]}_options set option_value = '{$primary_home}' where option_name = 'home'");
+                $site_id = (int) $site['stacked_site_id'];
+                $table   = "stacked_{$site_id}_options";
+
+                $wpdb->query( $wpdb->prepare( 
+                    "UPDATE {$table} set option_value = %s where option_name = 'siteurl'", 
+                    $primary_site_url 
+                ) );
+                $wpdb->query( $wpdb->prepare( 
+                    "UPDATE {$table} set option_value = %s where option_name = 'home'", 
+                    $primary_home 
+                ) );
             }
         }
 
         $sites_serialize = serialize( $sites );
-        $results         = $wpdb->get_results("select option_id from {$this->db_prefix_primary}options where option_name = 'stacked_sites'");
-        if ( empty( $results ) ) {
-            $wpdb->query("INSERT INTO {$this->db_prefix_primary}options ( option_name, option_value) VALUES ( 'stacked_sites', '$sites_serialize' )");
+        
+        // Secure the check for existing options
+        $exists = $wpdb->get_var( $wpdb->prepare( 
+            "SELECT option_id from {$this->db_prefix_primary}options where option_name = %s", 
+            'stacked_sites' 
+        ) );
+
+        // Secure INSERT and UPDATE
+        if ( ! $exists ) {
+            $wpdb->query( $wpdb->prepare( 
+                "INSERT INTO {$this->db_prefix_primary}options ( option_name, option_value) VALUES ( %s, %s )", 
+                'stacked_sites', 
+                $sites_serialize 
+            ) );
         } else {
-            $wpdb->query("UPDATE {$this->db_prefix_primary}options set option_value = '$sites_serialize' where option_name = 'stacked_sites'");
+            $wpdb->query( $wpdb->prepare( 
+                "UPDATE {$this->db_prefix_primary}options set option_value = %s where option_name = %s", 
+                $sites_serialize, 
+                'stacked_sites' 
+            ) );
         }
     }
 

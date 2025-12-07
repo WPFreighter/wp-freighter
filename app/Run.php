@@ -86,8 +86,22 @@ class Run {
     public function new_site( $request ) {
         $params = $request->get_json_params();
         
-        // Delegate to Site Model
-        $result = Site::create( (array) $params );
+        // Sanitize incoming parameters
+        $clean_params = [];
+        $clean_params['title']    = isset($params['title']) ? sanitize_text_field($params['title']) : 'New Site';
+        $clean_params['name']     = isset($params['name']) ? sanitize_text_field($params['name']) : 'New Site';
+        
+        // For domains, we sanitize as text to allow partials/localhost, but strip harmful chars
+        $clean_params['domain']   = isset($params['domain']) ? sanitize_text_field($params['domain']) : '';
+        
+        $clean_params['username'] = isset($params['username']) ? sanitize_user($params['username']) : 'admin';
+        $clean_params['email']    = isset($params['email']) ? sanitize_email($params['email']) : '';
+        
+        // Passwords should be kept raw for complexity, but only if they are set
+        $clean_params['password'] = isset($params['password']) ? $params['password'] : '';
+
+        // Delegate to Site Model with clean data
+        $result = Site::create( $clean_params );
 
         if ( is_wp_error( $result ) ) {
             return $result;
@@ -114,14 +128,18 @@ class Run {
 
     public function clone_existing( $request ) {
         $params    = $request->get_json_params();
+        
+        // Allow 'main' or an integer ID
         $source_id = isset( $params['source_id'] ) ? $params['source_id'] : 'main';
+        if ( $source_id !== 'main' ) {
+            $source_id = (int) $source_id;
+        }
         
         $args = [
-            'name'   => isset( $params['name'] ) ? $params['name'] : '',
-            'domain' => isset( $params['domain'] ) ? $params['domain'] : '',
+            'name'   => isset( $params['name'] ) ? sanitize_text_field( $params['name'] ) : '',
+            'domain' => isset( $params['domain'] ) ? sanitize_text_field( $params['domain'] ) : '',
         ];
 
-        // Delegate to Site Model
         $result = Site::clone( $source_id, $args );
 
         if ( is_wp_error( $result ) ) {
