@@ -169,7 +169,9 @@ class CLI extends WP_CLI_Command {
      * @subcommand list
      */
     public function list_sites( $args, $assoc_args ) {
-        $sites = ( new Sites )->get();
+        $sites   = ( new Sites )->get();
+        $configs = ( new Configurations )->get();
+
         if ( empty( $sites ) ) {
             WP_CLI::line( "No stacked sites found." );
             return;
@@ -184,7 +186,17 @@ class CLI extends WP_CLI_Command {
             ];
         }, $sites );
 
-        WP_CLI\Utils\format_items( 'table', $display_data, [ 'ID', 'Name', 'Domain', 'Created' ] );
+        $fields = [ 'ID' ];
+
+        if ( $configs->domain_mapping === 'on' ) {
+            $fields[] = 'Domain';
+        } else {
+            $fields[] = 'Name';
+        }
+
+        $fields[] = 'Created';
+
+        WP_CLI\Utils\format_items( 'table', $display_data, $fields );
     }
 
     /**

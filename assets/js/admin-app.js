@@ -135,18 +135,22 @@ new Vue({
         },
         openCloneDialog( item ) {
             this.clone_site.source_id   = item.stacked_site_id;
-            this.clone_site.source_name = item.name ? item.name : 'Site ' + item.stacked_site_id;
-            
+
+            if ( this.configurations.domain_mapping == 'on' ) {
+                this.clone_site.source_name = item.domain ? item.domain : 'Site ' + item.stacked_site_id;
+            } else {
+                this.clone_site.source_name = item.name ? item.name : 'Site ' + item.stacked_site_id;
+            }
+
             // Pre-fill logical defaults
             if ( this.configurations.domain_mapping == 'off' ) {
                 this.clone_site.name = item.name ? item.name + " (Clone)" : "";
-                this.clone_site.domain = "";
-            } else {
-                this.clone_site.name = "";
-                this.clone_site.domain = ""; // Keep empty for user to input
-            }
-            
-            this.clone_site.show = true;
+                        this.clone_site.domain = "";
+                    } else {
+                        this.clone_site.name = ""; 
+                        this.clone_site.domain = ""; // Keep empty for user to input
+                    }
+                    this.clone_site.show = true;
         },
         openCloneMainDialog() {
             // Explicitly set source_id to 'main' to trigger the new backend logic
