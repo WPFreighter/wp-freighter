@@ -91,24 +91,52 @@ input[type=text]:focus {
                 </v-toolbar-items>
             </v-toolbar>
             <v-card-text>
-                <v-alert type="error" outlined v-if="configurations.unable_to_save">
-                    Unable to save WP Freighter configurations to <code>wp-config.php</code>. The following will need to be manually added to your <code>wp-config.php</code> then verified. This should be placed directly after the line <code>$table_prefix = 'wp_';</code>.
-                    <v-row align="center">
-                        <v-col class="grow">
-                        <v-card class="my-3" outlined>
-                            <v-card-text>
-                                <div v-for="line in configurations.unable_to_save">{{ line }}</div>
-                            </v-card-text>
-                        </v-card>
+                <v-alert type="error" outlined v-if="configurations.errors && configurations.errors.manual_bootstrap_required">
+                    <h3 class="headline mb-2">Permission Error: Unable to create bootstrap file</h3>
+                    <p>WP Freighter cannot write to your <code>wp-content</code> directory. You must manually create this file to enable your stacked sites.</p>
+                    
+                    <p><strong>1. Create a new file:</strong><br>
+                    <code>/wp-content/freighter.php</code></p>
+                    
+                    <p><strong>2. Paste the following code into it:</strong></p>
+                    
+                    <v-textarea
+                        outlined
+                        readonly
+                        :value="configurations.errors.manual_bootstrap_required"
+                        height="300px"
+                        style="font-family: monospace; font-size: 12px;"
+                    ></v-textarea>
+                    
+                    <v-row>
+                        <v-col>
+                            <v-btn color="error" @click="saveConfigurations()">
+                                <v-icon left>mdi-refresh</v-icon> I have created the file
+                            </v-btn>
                         </v-col>
-                        <v-col class="shrink">
-                            <v-btn icon title="Copy configurations"><v-icon>mdi-content-copy</v-icon></v-btn>
+                        <v-col class="text-right">
+                            <v-btn text small @click="copyToClipboard(configurations.errors.manual_bootstrap_required)">Copy to Clipboard</v-btn>
                         </v-col>
                     </v-row>
-                    <v-btn color="primary">
-                        Verify Configurations
+                </v-alert>
+
+                <v-alert type="warning" outlined v-if="configurations.errors && !configurations.errors.manual_bootstrap_required && configurations.errors.manual_config_required">
+                    <h3 class="headline mb-2">Setup Required: Update wp-config.php</h3>
+                    <p>WP Freighter cannot write to your <code>wp-config.php</code> file. Please add the following snippet manually.</p>
+                    
+                    <p>Place this code directly <strong>after</strong> the line: <code>$table_prefix = 'wp_';</code></p>
+                    
+                    <v-card class="my-3 grey lighten-4" outlined>
+                        <v-card-text style="font-family: monospace;">
+                            <div v-for="line in configurations.errors.manual_config_required">{{ line }}</div>
+                        </v-card-text>
+                    </v-card>
+                    
+                    <v-btn color="warning" @click="saveConfigurations()">
+                        <v-icon left>mdi-check</v-icon> I have updated wp-config.php
                     </v-btn>
                 </v-alert>
+
                 <v-subheader>Stacked Sites</v-subheader>
                 <v-data-table
                     :headers="headers"

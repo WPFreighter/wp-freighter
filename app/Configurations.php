@@ -27,7 +27,43 @@ class Configurations {
     }
 
     public function get() {
-        return (object) $this->configurations;
+        $configs = (array) $this->configurations;
+        $configs['errors'] = [];
+
+        $bootstrap_path = WP_CONTENT_DIR . '/freighter.php';
+
+        // Lazy Init
+        if ( ! file_exists( $bootstrap_path ) ) {
+            $this->refresh_configs();
+        }
+
+        // Error 1 Check
+        if ( ! file_exists( $bootstrap_path ) ) {
+            $configs['errors']['manual_bootstrap_required'] = $this->get_bootstrap_content();
+        }
+
+        // Error 2 Check
+        if ( empty( $configs['errors']['manual_bootstrap_required'] ) ) {
+             if ( file_exists( ABSPATH . "wp-config.php" ) ) {
+                $wp_config_file = ABSPATH . "wp-config.php";
+            } elseif ( file_exists( dirname( ABSPATH ) . '/wp-config.php' ) ) {
+                $wp_config_file = dirname( ABSPATH ) . '/wp-config.php';
+            }
+
+            $wp_config_content = ( isset( $wp_config_file ) && file_exists( $wp_config_file ) ) 
+                ? file_get_contents( $wp_config_file ) 
+                : '';
+            
+            // Look for the unique filename
+            if ( strpos( $wp_config_content, 'wp-content/freighter.php' ) === false ) {
+                // Return as array for Vue compatibility
+                $configs['errors']['manual_config_required'] = [
+                    "if ( file_exists( dirname( __FILE__ ) . '/wp-content/freighter.php' ) ) { require_once( dirname( __FILE__ ) . '/wp-content/freighter.php' ); }"
+                ];
+            }
+        }
+
+        return (object) $configs;
     }
 
     public function get_json() {
@@ -68,8 +104,15 @@ class Configurations {
 
     public function update( $configurations ) {
         global $wpdb;
-        $this->configurations     = $configurations;
-        $configurations_serialize = serialize( $configurations );
+
+        // 1. Sanitize: Remove 'errors' so we don't save dynamic checks to DB
+        $data = (array) $configurations;
+        if ( isset( $data['errors'] ) ) {
+            unset( $data['errors'] );
+        }
+
+        $this->configurations     = $data;
+        $configurations_serialize = serialize( $this->configurations );
         
         $exists = $wpdb->get_var( $wpdb->prepare( 
             "SELECT option_id from {$this->db_prefix_primary}options where option_name = %s", 
@@ -103,114 +146,218 @@ class Configurations {
     public function refresh_configs() {
         global $wpdb;
 
-        $configurations = self::get();
-        $lines_to_add   = [ '', '/* WP Freighter */' ];
+        // 1. Generate & Write Bootstrap File
+        $bootstrap_content = $this->get_bootstrap_content();
+        $bootstrap_path    = WP_CONTENT_DIR . '/freighter.php';
+        
+        // Attempt write
+        $bootstrap_written = @file_put_contents( $bootstrap_path, $bootstrap_content );
 
-        // Get Primary Site URL directly from DB to avoid context pollution
-        $site_url = $wpdb->get_var( "SELECT option_value FROM {$this->db_prefix_primary}options WHERE option_name = 'siteurl'" );
-        $site_url = str_replace( "https://", "", $site_url );
-        $site_url = str_replace( "http://", "", $site_url );
-
-        // --- 1. Dedicated Mode ---
-        if ( $configurations->domain_mapping == "on" && $configurations->files == "dedicated" ) {
-            $domain_mapping = ( new Sites )->domain_mappings();
-            $lines_to_add[] = '$stacked_mappings = [];';
-            foreach ( $domain_mapping as $key => $domain ) {
-                $lines_to_add[] = '$stacked_mappings['.$key.'] = \''.$domain.'\';';
+        // Fallback check: maybe it already exists and is valid?
+        if ( ! $bootstrap_written ) {
+            if ( file_exists( $bootstrap_path ) && md5_file( $bootstrap_path ) === md5( $bootstrap_content ) ) {
+                $bootstrap_written = true;
             }
-            $lines_to_add[] = 'if ( isset( $_SERVER[\'HTTP_HOST\'] ) && in_array( $_SERVER[\'HTTP_HOST\'], $stacked_mappings ) ) { foreach( $stacked_mappings as $key => $stacked_mapping ) { if ( $stacked_mapping == $_SERVER[\'HTTP_HOST\'] ) { $stacked_site_id = $key; continue; } } }';
-            $lines_to_add[] = 'if ( defined( \'WP_CLI\' ) && WP_CLI ) { $stacked_site_id = getenv( \'STACKED_SITE_ID\' ); }';
-            $lines_to_add[] = 'if ( ! empty( $stacked_site_id ) && ! empty ( $stacked_mappings[ $stacked_site_id ] ) ) { define( \'TABLE_PREFIX\', $table_prefix ); $stacked_home = $stacked_mappings[ $stacked_site_id ]; $table_prefix = "stacked_{$stacked_site_id}_"; define( \'WP_CONTENT_URL\', "https://{$stacked_home}/content/{$stacked_site_id}" ); define( \'WP_CONTENT_DIR\', ABSPATH . "content/{$stacked_site_id}" ); }';
         }
 
-        if ( $configurations->domain_mapping == "off" && $configurations->files == "dedicated" ) {
-            $lines_to_add[] = '$stacked_site_id = ( isset( $_COOKIE[ "stacked_site_id" ] ) ? $_COOKIE[ "stacked_site_id" ] : "" );';
-            $lines_to_add[] = 'if ( defined( \'WP_CLI\' ) && WP_CLI ) { $stacked_site_id = getenv( \'STACKED_SITE_ID\' ); }';
-            // Single line injection
-            $lines_to_add[] = 'if ( ! empty( $stacked_site_id ) ) { define( \'TABLE_PREFIX\', $table_prefix ); $table_prefix = "stacked_{$stacked_site_id}_"; define( \'WP_CONTENT_URL\', "https://'. $site_url .'/content/{$stacked_site_id}" ); define( \'WP_CONTENT_DIR\', ABSPATH . "content/{$stacked_site_id}" ); define( \'WP_HOME\', "https://'. $site_url .'" ); define( \'WP_SITEURL\', "https://'. $site_url .'" ); }';
+        if ( ! $bootstrap_written ) {
+            return; // get() will handle the error display
         }
 
-        // --- 2. Hybrid Mode ---
-        if ( $configurations->domain_mapping == "on" && $configurations->files == "hybrid" ) {
-            $domain_mapping = ( new Sites )->domain_mappings();
-            $lines_to_add[] = '$stacked_mappings = [];';
-            foreach ( $domain_mapping as $key => $domain ) {
-                $lines_to_add[] = '$stacked_mappings['.$key.'] = \''.$domain.'\';';
-            }
-            $lines_to_add[] = 'if ( isset( $_SERVER[\'HTTP_HOST\'] ) && in_array( $_SERVER[\'HTTP_HOST\'], $stacked_mappings ) ) { foreach( $stacked_mappings as $key => $stacked_mapping ) { if ( $stacked_mapping == $_SERVER[\'HTTP_HOST\'] ) { $stacked_site_id = $key; continue; } } }';
-            $lines_to_add[] = 'if ( defined( \'WP_CLI\' ) && WP_CLI ) { $stacked_site_id = getenv( \'STACKED_SITE_ID\' ); }';
-            $lines_to_add[] = 'if ( ! empty( $stacked_site_id ) && ! empty ( $stacked_mappings[ $stacked_site_id ] ) ) { define( \'TABLE_PREFIX\', $table_prefix ); $table_prefix = "stacked_{$stacked_site_id}_"; define( \'UPLOADS\', "content/{$stacked_site_id}/uploads" ); }';
-        }
+        // 2. The Clean One-Liner (No Comment)
+        $lines_to_add = [
+            "if ( file_exists( dirname( __FILE__ ) . '/wp-content/freighter.php' ) ) { require_once( dirname( __FILE__ ) . '/wp-content/freighter.php' ); }"
+        ];
 
-        if ( $configurations->domain_mapping == "off" && $configurations->files == "hybrid" ) {
-            $lines_to_add[] = '$stacked_site_id = ( isset( $_COOKIE[ "stacked_site_id" ] ) ? $_COOKIE[ "stacked_site_id" ] : "" );';
-            $lines_to_add[] = 'if ( defined( \'WP_CLI\' ) && WP_CLI ) { $stacked_site_id = getenv( \'STACKED_SITE_ID\' ); }';
-            // Single line injection
-            $lines_to_add[] = 'if ( ! empty( $stacked_site_id ) ) { define( \'TABLE_PREFIX\', $table_prefix ); $table_prefix = "stacked_{$stacked_site_id}_"; define( \'UPLOADS\', "content/{$stacked_site_id}/uploads" ); define( \'WP_HOME\', "https://'. $site_url .'" ); define( \'WP_SITEURL\', "https://'. $site_url .'" ); }';
-        }
-
-        // --- 3. Shared Mode ---
-        if ( $configurations->domain_mapping == "on" && $configurations->files == "shared" ) {
-            $domain_mapping = ( new Sites )->domain_mappings();
-            $lines_to_add[] = '$stacked_mappings = [];';
-            foreach ( $domain_mapping as $key => $domain ) {
-                $lines_to_add[] = '$stacked_mappings['.$key.'] = \''.$domain.'\';';
-            }
-            $lines_to_add[] = 'if ( isset( $_SERVER[\'HTTP_HOST\'] ) && in_array( $_SERVER[\'HTTP_HOST\'], $stacked_mappings ) ) { foreach( $stacked_mappings as $key => $stacked_mapping ) { if ( $stacked_mapping == $_SERVER[\'HTTP_HOST\'] ) { $stacked_site_id = $key; continue; } } }';
-            $lines_to_add[] = 'if ( defined( \'WP_CLI\' ) && WP_CLI ) { $stacked_site_id = getenv( \'STACKED_SITE_ID\' ); }';
-            $lines_to_add[] = 'if ( ! empty( $stacked_site_id ) && ! empty ( $stacked_mappings[ $stacked_site_id ] ) ) { define( \'TABLE_PREFIX\', $table_prefix ); $table_prefix = "stacked_{$stacked_site_id}_"; }';
-        }
-
-        if ( $configurations->domain_mapping == "off" && $configurations->files == "shared" ) {
-            $lines_to_add[] = '$stacked_site_id = ( isset( $_COOKIE[ "stacked_site_id" ] ) ? $_COOKIE[ "stacked_site_id" ] : "" );';
-            $lines_to_add[] = 'if ( defined( \'WP_CLI\' ) && WP_CLI ) { $stacked_site_id = getenv( \'STACKED_SITE_ID\' ); }';
-            // Single line injection
-            $lines_to_add[] = 'if ( ! empty( $stacked_site_id ) ) { define( \'TABLE_PREFIX\', $table_prefix ); $table_prefix = "stacked_{$stacked_site_id}_"; define( \'WP_HOME\', "https://'. $site_url .'" ); define( \'WP_SITEURL\', "https://'. $site_url .'" ); }';
-        }
-
-        // --- 4. Write to wp-config.php ---
+        // 3. Update wp-config.php
         if ( file_exists( ABSPATH . "wp-config.php" ) ) {
             $wp_config_file = ABSPATH . "wp-config.php";
-        }
-
-        if ( file_exists( dirname( ABSPATH ) . '/wp-config.php' ) ) {
+        } elseif ( file_exists( dirname( ABSPATH ) . '/wp-config.php' ) ) {
             $wp_config_file = dirname( ABSPATH ) . '/wp-config.php';
-        }
-
-        if ( empty ( $wp_config_file ) ) {
-            self::update_config( "unable_to_save", $lines_to_add );
+        } else {
             return;
         }
 
-        $wp_config_content = file_get_contents( $wp_config_file );
-        $working           = preg_split( '/\R/', $wp_config_content );
-        // Remove WP Freighter configs. Any lines containing '/* WP Freighter */', 'stacked_site_id' and '$stacked_mappings'.
-        foreach( $working as $key => $line ) {
-            if ( strpos( $line, '/* WP Freighter */' ) !== false || strpos( $line, 'stacked_site_id' ) !== false || strpos( $line, '$stacked_mappings' ) !== false ) {
-                unset( $working[ $key ] );
+        if ( is_writable( $wp_config_file ) ) {
+            $wp_config_content = file_get_contents( $wp_config_file );
+            $working           = preg_split( '/\R/', $wp_config_content );
+
+            // Clean OLD logic and NEW logic
+            $working = $this->clean_wp_config_lines( $working );
+
+            // Find insertion point ($table_prefix)
+            $table_prefix_line = 0;
+            foreach( $working as $key => $line ) {
+                if ( strpos( $line, '$table_prefix' ) !== false ) {
+                    $table_prefix_line = $key;
+                    break;
+                }
+            }
+
+            // Insert new one-liner
+            $updated = array_merge( 
+                array_slice( $working, 0, $table_prefix_line + 1, true ), 
+                $lines_to_add, 
+                array_slice( $working, $table_prefix_line + 1, count( $working ), true ) 
+            );
+
+            file_put_contents( $wp_config_file, implode( PHP_EOL, $updated ) );
+        }
+    }
+
+    /**
+     * Generates the dynamic PHP code for wp-content/freighter.php
+     */
+    private function get_bootstrap_content() {
+        global $wpdb;
+        
+        $configurations = (object) $this->configurations; 
+        
+        // Fetch URL cleanly directly from DB
+        $site_url = $wpdb->get_var( "SELECT option_value FROM {$this->db_prefix_primary}options WHERE option_name = 'siteurl'" );
+        $site_url = str_replace( ["https://", "http://"], "", $site_url );
+
+        // Prepare Mappings Array
+        $mapping_php = '$stacked_mappings = [];';
+        if ( $configurations->domain_mapping == "on" ) {
+            $domain_mappings = ( new Sites )->domain_mappings();
+            // Using var_export ensures the array is written as valid PHP code
+            $export = var_export( $domain_mappings, true );
+            $mapping_php = "\$stacked_mappings = $export;";
+        }
+
+        // Logic Blocks based on File Mode
+        $mode_logic = "";
+
+        // --- DEDICATED MODE ---
+        if ( $configurations->files == 'dedicated' ) {
+            $mode_logic = <<<PHP
+    if ( ! empty( \$stacked_site_id ) ) {
+        \$table_prefix = "stacked_{\$stacked_site_id}_";
+        define( 'WP_CONTENT_URL', "https://" . ( isset(\$stacked_home) ? \$stacked_home : '$site_url' ) . "/content/{\$stacked_site_id}" );
+        define( 'WP_CONTENT_DIR', ABSPATH . "content/{\$stacked_site_id}" );
+        
+        // Define URLs for non-mapped sites (cookie based)
+        if ( empty( \$stacked_home ) ) {
+             define( 'WP_HOME', "https://$site_url" );
+             define( 'WP_SITEURL', "https://$site_url" );
+        }
+    }
+PHP;
+        }
+
+        // --- HYBRID MODE ---
+        if ( $configurations->files == 'hybrid' ) {
+            $mode_logic = <<<PHP
+    if ( ! empty( \$stacked_site_id ) ) {
+        \$table_prefix = "stacked_{\$stacked_site_id}_";
+        define( 'UPLOADS', "content/{\$stacked_site_id}/uploads" );
+        
+        if ( empty( \$stacked_home ) ) {
+             define( 'WP_HOME', "https://$site_url" );
+             define( 'WP_SITEURL', "https://$site_url" );
+        }
+    }
+PHP;
+        }
+
+        // --- SHARED MODE ---
+        if ( $configurations->files == 'shared' ) {
+            $mode_logic = <<<PHP
+    if ( ! empty( \$stacked_site_id ) ) {
+        \$table_prefix = "stacked_{\$stacked_site_id}_";
+        
+        if ( empty( \$stacked_home ) ) {
+             define( 'WP_HOME', "https://$site_url" );
+             define( 'WP_SITEURL', "https://$site_url" );
+        }
+    }
+PHP;
+        }
+
+        // Return the Full File Content
+        return <<<EOD
+<?php
+/**
+ * WP Freighter Bootstrap
+ *
+ * Auto-generated file. Do not edit directly. 
+ * Settings are managed via WP Admin -> Tools -> WP Freighter.
+ */
+
+// 1. Define Mappings
+$mapping_php
+
+// 2. Identify Stacked Site ID
+\$stacked_site_id = ( isset( \$_COOKIE[ "stacked_site_id" ] ) ? \$_COOKIE[ "stacked_site_id" ] : "" );
+
+// CLI Support
+if ( defined( 'WP_CLI' ) && WP_CLI ) { 
+    \$env_id = getenv( 'STACKED_SITE_ID' );
+    if ( \$env_id ) { \$stacked_site_id = \$env_id; }
+}
+
+// Domain Mapping Detection
+if ( isset( \$_SERVER['HTTP_HOST'] ) && in_array( \$_SERVER['HTTP_HOST'], \$stacked_mappings ) ) {
+    \$found_id = array_search( \$_SERVER['HTTP_HOST'], \$stacked_mappings );
+    if ( \$found_id ) {
+        \$stacked_site_id = \$found_id;
+        \$stacked_home    = \$stacked_mappings[ \$found_id ];
+    }
+}
+
+// 3. Apply Configuration Logic
+if ( ! empty( \$stacked_site_id ) ) {
+    // Save original prefix if needed later
+    if ( ! defined( 'TABLE_PREFIX' ) && isset( \$table_prefix ) ) {
+        define( 'TABLE_PREFIX', \$table_prefix );
+    }
+    
+$mode_logic
+
+    // Ensure Object Caching is unique per site
+    if ( ! defined( 'WP_CACHE_KEY_SALT' ) ) {
+        define( 'WP_CACHE_KEY_SALT', \$stacked_site_id );
+    }
+}
+EOD;
+    }
+
+    /**
+     * Cleaning Logic
+     */
+    private function clean_wp_config_lines( $lines ) {
+        $is_legacy_block = false;
+
+        foreach( $lines as $key => $line ) {
+            
+            // 1. Remove the One-Liner (Matches by unique filename)
+            if ( strpos( $line, 'wp-content/freighter.php' ) !== false ) {
+                unset( $lines[ $key ] );
+                continue;
+            }
+
+            // 2. Remove Legacy Multi-line Blocks (Keep this to clean old versions)
+            if ( strpos( $line, '/* WP Freighter */' ) !== false ) {
+                if ( strpos( $line, 'require_once' ) === false ) {
+                    $is_legacy_block = true;
+                }
+                unset( $lines[ $key ] );
+                continue;
+            }
+
+            if ( $is_legacy_block || 
+                 strpos( $line, '$stacked_site_id' ) !== false || 
+                 strpos( $line, '$stacked_mappings' ) !== false ) {
+                
+                 unset( $lines[ $key ] );
+                 
+                 if ( trim( $line ) === '}' || trim( $line ) === '' ) {
+                     $is_legacy_block = false;
+                 }
             }
         }
-
-        // Add default configurations right after $table_prefix
-        foreach( $working as $key => $line ) {
-            if ( strpos( $line, '$table_prefix' ) !== false ) {
-                $table_prefix_line = $key;
-                break;
-            }
-        }
-
-        // Remove extra line space if found.
-        if ( empty( $working[ $table_prefix_line + 1 ] ) && empty( $working[ $table_prefix_line + 2 ] ) ) {
-            unset( $working[ $table_prefix_line + 1 ] );
-        }
-
-        // Updated content
-        $updated = array_merge( array_slice( $working, 0, $table_prefix_line + 1, true ), $lines_to_add, array_slice( $working, $table_prefix_line + 1, count( $working ), true ) );
-        // Save changes to wp-config.php
-        $results = file_put_contents( $wp_config_file, implode( "\n", $updated ) );
-        if ( empty( $results ) ) {
-            self::update_config( "unable_to_save", $lines_to_add );
-        }
+        return $lines;
     }
 
 }
