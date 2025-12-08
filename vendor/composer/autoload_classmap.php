@@ -10,6 +10,7 @@ return array(
     'WPFreighter\\CLI' => $baseDir . '/app/CLI.php',
     'WPFreighter\\Configurations' => $baseDir . '/app/Configurations.php',
     'WPFreighter\\Run' => $baseDir . '/app/Run.php',
+    'WPFreighter\\Site' => $baseDir . '/app/Site.php',
     'WPFreighter\\Sites' => $baseDir . '/app/Sites.php',
     'WPFreighter\\Updater' => $baseDir . '/app/Updater.php',
 );
