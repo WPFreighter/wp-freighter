@@ -154,6 +154,7 @@ input[type=text]:focus {
                         <th v-show="configurations.domain_mapping == 'off'">Label</th>
                         <th v-show="configurations.domain_mapping == 'on'">Domain Mapping</th>
                         <th v-show="configurations.files == 'dedicated'">Files</th>
+                        <th v-show="configurations.files == 'hybrid'">Uploads</th>
                         <th>Created At</th>
                         <th></th>
                     </tr>
@@ -175,8 +176,11 @@ input[type=text]:focus {
                         <td v-show="configurations.domain_mapping == 'on'">
                             <v-text-field v-model="item.domain" label="" value="item.domain" @input="changeForm()"></v-text-field>
                         </td>
-                        <td v-show="configurations.files == 'dedicated'">
+                        <td width="160px" v-show="configurations.files == 'dedicated'">
                             <code>/content/{{ item.stacked_site_id }}/</code>
+                        </td>
+                        <td width="200px" v-show="configurations.files == 'hybrid'">
+                            <code>/content/{{ item.stacked_site_id }}/uploads/</code>
                         </td>
                         <td width="220px">{{ pretty_timestamp( item.created_at ) }}</td>
                         <td width="150px" class="text-right">

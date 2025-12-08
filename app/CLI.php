@@ -177,21 +177,35 @@ class CLI extends WP_CLI_Command {
             return;
         }
 
+        // Prepare all possible data points
         $display_data = array_map( function( $site ) {
             return [
                 'ID'      => $site['stacked_site_id'],
                 'Name'    => $site['name'],
                 'Domain'  => $site['domain'],
+                'Content' => "content/{$site['stacked_site_id']}",
+                'Uploads' => "content/{$site['stacked_site_id']}/uploads",
                 'Created' => date( 'Y-m-d H:i:s', $site['created_at'] ),
             ];
         }, $sites );
 
+        // Build columns dynamically based on configurations
         $fields = [ 'ID' ];
 
+        // Toggle Name vs Domain
         if ( $configs->domain_mapping === 'on' ) {
             $fields[] = 'Domain';
         } else {
             $fields[] = 'Name';
+        }
+
+        if ( $configs->files === 'dedicated' ) {
+            $fields[] = 'Content';
+        }
+
+        // Show Uploads path if in Hybrid mode
+        if ( $configs->files === 'hybrid' ) {
+            $fields[] = 'Uploads';
         }
 
         $fields[] = 'Created';
