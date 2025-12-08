@@ -18,6 +18,7 @@ new Vue({
     data: {
         configurations: wpFreighterSettings.configurations || {},
         stacked_sites: wpFreighterSettings.stacked_sites || [],
+        current_site_id: wpFreighterSettings.current_site_id || "",
         response: "",
         snackbar: false,
         snackbarText: "",
@@ -282,6 +283,24 @@ new Vue({
             .catch( error => {
                 this.loading = false;
                 this.snackbarText = "Autologin failed: " + (error.response.data.message || error.message);
+                this.snackbar = true;
+                console.log( error );
+            });
+        },
+        loginToMain() {
+            this.loading = true;
+            axios.post( wpFreighterSettings.root + 'sites/autologin', {
+                'site_id': 'main'
+            })
+            .then( response => {
+                this.loading = false;
+                if ( response.data.url ) {
+                    window.location.href = response.data.url;
+                }
+            })
+            .catch( error => {
+                this.loading = false;
+                this.snackbarText = "Login failed: " + (error.response?.data?.message || error.message);
                 this.snackbar = true;
                 console.log( error );
             });

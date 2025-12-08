@@ -40,6 +40,9 @@ input[type=text]:focus {
                 <v-toolbar-title>WP Freighter</v-toolbar-title>
                 <v-spacer></v-spacer>
                 <v-toolbar-items>
+                    <v-btn v-if="configurations.domain_mapping == 'on' && configurations.current_site_id != ''" small text @click="loginToMain()">
+                        <v-icon>mdi-login-variant</v-icon> Login to main site
+                    </v-btn>
                     <v-btn small text @click="openCloneMainDialog()"><v-icon>mdi-content-copy</v-icon> Clone main site</v-btn>
                     <v-dialog v-model="new_site.show" persistent max-width="600px">
                     <template v-slot:activator="{ on, attrs }">

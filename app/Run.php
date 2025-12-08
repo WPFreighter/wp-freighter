@@ -170,7 +170,12 @@ class Run {
 
     public function auto_login( $request ) {
         $params = $request->get_json_params();
-        $site_id = (int) $params['site_id'];
+        
+        // Allow 'main' or an integer ID
+        $site_id = isset( $params['site_id'] ) ? $params['site_id'] : '';
+        if ( $site_id !== 'main' ) {
+            $site_id = (int) $site_id;
+        }
 
         // Delegate to Site Model
         $login_url = Site::login( $site_id );
