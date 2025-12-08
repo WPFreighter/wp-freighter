@@ -3,5 +3,8 @@
         "psr-4": {
             "WPFreighter\\": "app/"
         }
+    },
+    "scripts": {
+        "update-assets": "WPFreighter\\Dev\\AssetFetcher::fetch"
     }
 }
