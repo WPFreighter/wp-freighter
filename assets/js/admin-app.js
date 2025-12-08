@@ -81,6 +81,22 @@ new Vue({
             });
             return formatted_date;
         },
+        copyToClipboard( text ) {
+            // Check if API is supported
+            if ( !navigator.clipboard ) {
+                this.snackbarText = "Clipboard API not supported via non-secure context.";
+                this.snackbar = true;
+                return;
+            }
+
+            navigator.clipboard.writeText( text ).then( () => {
+                this.snackbarText = "Code copied to clipboard.";
+                this.snackbar = true;
+            }, ( err ) => {
+                this.snackbarText = "Failed to copy: " + err;
+                this.snackbar = true;
+            });
+        },
         generatePassword() {
             return Math.random().toString(36).slice(-10);
         },
