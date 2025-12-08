@@ -9,6 +9,7 @@ return array(
     'Composer\\InstalledVersions' => $vendorDir . '/composer/InstalledVersions.php',
     'WPFreighter\\CLI' => $baseDir . '/app/CLI.php',
     'WPFreighter\\Configurations' => $baseDir . '/app/Configurations.php',
+    'WPFreighter\\Dev\\AssetFetcher' => $baseDir . '/app/Dev/AssetFetcher.php',
     'WPFreighter\\Run' => $baseDir . '/app/Run.php',
     'WPFreighter\\Site' => $baseDir . '/app/Site.php',
     'WPFreighter\\Sites' => $baseDir . '/app/Sites.php',

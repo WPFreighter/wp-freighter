@@ -24,6 +24,7 @@ class ComposerStaticInit68be0100d7d9e80e822c421ddd2b7c98
         'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
         'WPFreighter\\CLI' => __DIR__ . '/../..' . '/app/CLI.php',
         'WPFreighter\\Configurations' => __DIR__ . '/../..' . '/app/Configurations.php',
+        'WPFreighter\\Dev\\AssetFetcher' => __DIR__ . '/../..' . '/app/Dev/AssetFetcher.php',
         'WPFreighter\\Run' => __DIR__ . '/../..' . '/app/Run.php',
         'WPFreighter\\Site' => __DIR__ . '/../..' . '/app/Site.php',
         'WPFreighter\\Sites' => __DIR__ . '/../..' . '/app/Sites.php',
