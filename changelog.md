@@ -1,5 +1,20 @@
 # Changelog
 
+## **1.4.0** - 2025-12-09
+### Added
+- **Bootstrap Architecture:** Introduced `wp-content/freighter.php` to handle site loading logic. This significantly reduces the footprint within `wp-config.php` to a single `require_once` line, making the configuration more robust and easier to read.
+- **Local Dependencies:** Removed reliance on external CDNs (delivr.net) for frontend assets. Vue.js, Vuetify, and Axios are now bundled locally within the plugin, improving privacy, compliance (GDPR), and offline development capabilities.
+- **Manual Configuration UI:** Added a dedicated interface for environments with strict file permissions. If the plugin cannot write to `wp-config.php` or create the bootstrap file, it now provides the exact code snippets and a "Copy to Clipboard" feature for manual installation.
+- **Session Gatekeeper:** Implemented stricter security logic for cookie-based context switching. The plugin now actively verifies that a user is authenticated or in the process of logging in before allowing access to a stacked site via cookies.
+- **"Login to Main" Button:** Added a quick-access button in the toolbar to return to the main parent site dashboard when viewing a stacked site with domain mapping enabled.
+
+### Changed
+- **Context Switching:** Refactored the context switching logic to force an immediate header reload when setting the `stacked_site_id` cookie. This resolves issues where the context switch would occasionally fail on the first attempt.
+- **Asset Management:** Added a developer utility (`WPFreighter\Dev\AssetFetcher`) to programmatically fetch and update frontend vendor libraries.
+
+### Fixed
+- **Cookie Reliability:** Fixed an issue where the site ID cookie wasn't being set early enough during the request lifecycle for specific hosting configurations.
+
 ## **1.3.0** - 2025-12-07
 ### Added
 - **Hybrid Mode:** Introduced a new "Hybrid" file mode that shares plugins and themes across all sites while keeping the `uploads` folder unique for each site. Perfect for agencies managing standardized stacks with different media libraries.
