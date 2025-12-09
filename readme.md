@@ -7,14 +7,15 @@ WP Freighter allows you to efficiently run many WordPress sites from a single Wo
 ## Features
 
 *   **Lightning Fast Provisioning ⚡** - Spin up new environments in seconds. Only database tables are created or cloned.
-*   **One-Click Cloning** - Clone your main site or *any* existing stacked site to a new environment. Perfect for staging or testing.
-*   **Zero-Config Sandbox** - Safely troubleshoot maintenance issues by cloning your live site to a sandbox piggybacked onto your existing installation.
 *   **Flexible File Isolation** - Choose how your sites share files:
-    *   **Shared:** All sites share plugins, themes, and uploads.
-    *   **Hybrid:** Shared plugins/themes, but unique uploads folder.
-    *   **Dedicated:** Completely unique `wp-content` directory for every site.
+    *   **Shared:** All sites share plugins, themes, and uploads (Single `/wp-content/`).
+    *   **Hybrid:** Shared plugins and themes, but unique uploads for every site (Standardized stack, unique content).
+    *   **Dedicated:** Completely unique `/wp-content/` directory for every site (Full isolation).
+*   **One-Click Cloning** - Clone your main site or *any* existing stacked site to a new environment. Perfect for staging or testing.
 *   **Domain Mapping** - Map unique custom domains to specific stacked sites or use the parent domain for easy access.
 *   **Magic Login** - Generate one-time auto-login links to jump between site dashboards instantly.
+*   **Zero-Config Sandbox** - Safely troubleshoot maintenance issues by cloning your live site to a sandbox piggybacked onto your existing installation.
+*   **Secure Context Switching** - Intelligent session management ensures admins can move between sites securely.
 
 ---
 
@@ -25,7 +26,12 @@ WP Freighter allows you to efficiently run many WordPress sites from a single Wo
 3.  Activate the plugin.
 4.  Navigate to **Tools -> WP Freighter** to configure your environment.
 
-> **Note:** WP Freighter must modify your `wp-config.php` file to function. If your host locks this file, you will be provided with a code snippet to add manually.
+### Configuration Note
+WP Freighter attempts to create a bootstrap file at `/wp-content/freighter.php` and modify your `wp-config.php` to function. 
+
+If your host restricts file permissions:
+1.  The plugin will provide the exact code snippets you need.
+2.  You will need to manually create the bootstrap file and/or edit `wp-config.php`.
 
 ---
 
@@ -62,7 +68,7 @@ wp freighter clone 2 --name="Dev Copy"
 # Generate a magic login URL for Site ID 3
 wp freighter login 3
 
-# Delete a site
+# Delete a site (Confirmation required)
 wp freighter delete 4
 ```
 
@@ -119,26 +125,26 @@ $edit_url = \WPFreighter\Site::login( 2, 'post-new.php' );
 
 ## Architecture & Modes
 
-WP Freighter works by dynamically swapping the `$table_prefix` in `wp-config.php` based on the requested domain or a cookie. It offers three distinct file modes to suit your workflow:
+WP Freighter works by dynamically swapping the `$table_prefix` and directory constants based on the requested domain or a secure admin cookie. It offers three distinct file modes to suit your workflow:
 
-1.  **Shared Mode:**
-    *   Single `/wp-content/` directory.
-    *   All sites share the exact same plugins, themes, and media library.
-    *   *Best for:* Multilingual networks or brand variations using the exact same assets.
+### 1. Shared Mode
+*   **Structure:** Single `/wp-content/` directory.
+*   **Behavior:** All sites share the exact same plugins, themes, and media library.
+*   **Best for:** Multilingual networks or brand variations using the exact same assets.
 
-2.  **Hybrid Mode:**
-    *   Shared `/plugins/` and `/themes/`.
-    *   Unique `/uploads/` directory stored in `/content/<id>/uploads/`.
-    *   *Best for:* Agencies managing multiple client sites with a standardized plugin stack but different media.
+### 2. Hybrid Mode
+*   **Structure:** Shared `/plugins/` and `/themes/`. Unique uploads stored in `/content/<id>/uploads/`.
+*   **Behavior:** You manage one set of plugins for all sites, but every site has its own media library.
+*   **Best for:** Agencies managing multiple client sites with a standardized software stack but unique content.
 
-3.  **Dedicated Mode:**
-    *   Completely unique `/wp-content/` directory stored in `/content/<id>/`.
-    *   Each site has its own plugins, themes, and uploads.
-    *   *Best for:* True multi-tenancy, snapshots, and distinct staging environments.
+### 3. Dedicated Mode
+*   **Structure:** Completely unique `/wp-content/` directory stored in `/content/<id>/`.
+*   **Behavior:** Each site has its own plugins, themes, and uploads.
+*   **Best for:** True multi-tenancy, snapshots, and distinct staging environments where you need to test plugin updates in isolation.
 
 ## Known Limitations ⚠️
 
-*   **`wp-config.php` Access:** The plugin requires write access to `wp-config.php`. If your host prevents this, manual configuration is required.
+*   **`wp-config.php` Access:** The plugin requires write access to `wp-config.php` and `wp-content/`. If your host prevents this, manual configuration is required.
 *   **Root Files:** Files in the root directory (like `robots.txt` or `.htaccess`) are shared across all sites.
 *   **Cron Jobs:** WP-Cron relies on traffic to trigger. For low-traffic stacked sites, consider setting up system cron jobs triggered via WP-CLI.
 
