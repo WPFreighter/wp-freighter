@@ -53,7 +53,6 @@ class Configurations {
             $wp_config_content = ( isset( $wp_config_file ) && file_exists( $wp_config_file ) ) 
                 ? file_get_contents( $wp_config_file ) 
                 : '';
-            
             // Look for the unique filename
             if ( strpos( $wp_config_content, 'wp-content/freighter.php' ) === false ) {
                 // Return as array for Vue compatibility
@@ -81,12 +80,10 @@ class Configurations {
         global $wpdb;
         $this->configurations[ $key ] = $value;
         $configurations_serialize     = serialize( $this->configurations );
-        
         $exists = $wpdb->get_var( $wpdb->prepare( 
             "SELECT option_id from {$this->db_prefix_primary}options where option_name = %s", 
             'stacked_configurations' 
         ) );
-
         if ( ! $exists ) {
             $wpdb->query( $wpdb->prepare( 
                 "INSERT INTO {$this->db_prefix_primary}options ( option_name, option_value) VALUES ( %s, %s )", 
@@ -104,7 +101,6 @@ class Configurations {
 
     public function update( $configurations ) {
         global $wpdb;
-
         // 1. Sanitize: Remove 'errors' so we don't save dynamic checks to DB
         $data = (array) $configurations;
         if ( isset( $data['errors'] ) ) {
@@ -113,12 +109,10 @@ class Configurations {
 
         $this->configurations     = $data;
         $configurations_serialize = serialize( $this->configurations );
-        
         $exists = $wpdb->get_var( $wpdb->prepare( 
             "SELECT option_id from {$this->db_prefix_primary}options where option_name = %s", 
             'stacked_configurations' 
         ) );
-
         if ( ! $exists ) {
             $wpdb->query( $wpdb->prepare( 
                 "INSERT INTO {$this->db_prefix_primary}options ( option_name, option_value) VALUES ( %s, %s )", 
@@ -145,14 +139,12 @@ class Configurations {
 
     public function refresh_configs() {
         global $wpdb;
-
         // 1. Generate & Write Bootstrap File
         $bootstrap_content = $this->get_bootstrap_content();
         $bootstrap_path    = WP_CONTENT_DIR . '/freighter.php';
         
         // Attempt write
         $bootstrap_written = @file_put_contents( $bootstrap_path, $bootstrap_content );
-
         // Fallback check: maybe it already exists and is valid?
         if ( ! $bootstrap_written ) {
             if ( file_exists( $bootstrap_path ) && md5_file( $bootstrap_path ) === md5( $bootstrap_content ) ) {
@@ -168,7 +160,6 @@ class Configurations {
         $lines_to_add = [
             "if ( file_exists( dirname( __FILE__ ) . '/wp-content/freighter.php' ) ) { require_once( dirname( __FILE__ ) . '/wp-content/freighter.php' ); }"
         ];
-
         // 3. Update wp-config.php
         if ( file_exists( ABSPATH . "wp-config.php" ) ) {
             $wp_config_file = ABSPATH . "wp-config.php";
@@ -181,10 +172,8 @@ class Configurations {
         if ( is_writable( $wp_config_file ) ) {
             $wp_config_content = file_get_contents( $wp_config_file );
             $working           = preg_split( '/\R/', $wp_config_content );
-
             // Clean OLD logic and NEW logic
             $working = $this->clean_wp_config_lines( $working );
-
             // Find insertion point ($table_prefix)
             $table_prefix_line = 0;
             foreach( $working as $key => $line ) {
@@ -200,7 +189,6 @@ class Configurations {
                 $lines_to_add, 
                 array_slice( $working, $table_prefix_line + 1, count( $working ), true ) 
             );
-
             file_put_contents( $wp_config_file, implode( PHP_EOL, $updated ) );
         }
     }
@@ -210,7 +198,6 @@ class Configurations {
      */
     private function get_bootstrap_content() {
         global $wpdb;
-        
         $configurations = (object) $this->configurations; 
         
         // Fetch URL cleanly directly from DB
@@ -228,7 +215,6 @@ class Configurations {
 
         // Logic Blocks based on File Mode
         $mode_logic = "";
-
         // --- DEDICATED MODE ---
         if ( $configurations->files == 'dedicated' ) {
             $mode_logic = <<<PHP
@@ -236,7 +222,6 @@ class Configurations {
         \$table_prefix = "stacked_{\$stacked_site_id}_";
         define( 'WP_CONTENT_URL', "https://" . ( isset(\$stacked_home) ? \$stacked_home : '$site_url' ) . "/content/{\$stacked_site_id}" );
         define( 'WP_CONTENT_DIR', ABSPATH . "content/{\$stacked_site_id}" );
-        
         // Define URLs for non-mapped sites (cookie based)
         if ( empty( \$stacked_home ) ) {
              define( 'WP_HOME', "https://$site_url" );
@@ -266,7 +251,6 @@ PHP;
             $mode_logic = <<<PHP
     if ( ! empty( \$stacked_site_id ) ) {
         \$table_prefix = "stacked_{\$stacked_site_id}_";
-        
         if ( empty( \$stacked_home ) ) {
              define( 'WP_HOME', "https://$site_url" );
              define( 'WP_SITEURL', "https://$site_url" );
@@ -290,6 +274,30 @@ $mapping_php
 
 // 2. Identify Stacked Site ID
 \$stacked_site_id = ( isset( \$_COOKIE[ "stacked_site_id" ] ) ? \$_COOKIE[ "stacked_site_id" ] : "" );
+
+// [GATEKEEPER] Enforce strict access control for cookie-based access
+if ( ! empty( \$stacked_site_id ) && isset( \$_COOKIE['stacked_site_id'] ) ) {
+    
+    // Whitelist login page (so Magic Login can function)
+    \$is_login = ( isset( \$_SERVER['SCRIPT_NAME'] ) && strpos( \$_SERVER['SCRIPT_NAME'], 'wp-login.php' ) !== false );
+    
+    // Check for WordPress Auth Cookie (Raw Check)
+    // We check if *any* cookie starts with 'wordpress_logged_in_' because we can't validate the hash yet.
+    \$has_auth_cookie = false;
+    foreach ( \$_COOKIE as \$key => \$value ) {
+        if ( strpos( \$key, 'wordpress_logged_in_' ) === 0 ) {
+            \$has_auth_cookie = true;
+            break;
+        }
+    }
+
+    // If not logging in, and no auth cookie is present, REVOKE ACCESS immediately.
+    if ( ! \$is_login && ! \$has_auth_cookie ) {
+        setcookie( 'stacked_site_id', '', time() - 3600, '/' );
+        unset( \$_COOKIE['stacked_site_id'] );
+        \$stacked_site_id = ""; // Revert to Main Site context for this request
+    }
+}
 
 // CLI Support
 if ( defined( 'WP_CLI' ) && WP_CLI ) { 
@@ -328,7 +336,6 @@ EOD;
      */
     private function clean_wp_config_lines( $lines ) {
         $is_legacy_block = false;
-
         foreach( $lines as $key => $line ) {
             
             // 1. Remove the One-Liner (Matches by unique filename)
@@ -346,15 +353,13 @@ EOD;
                 continue;
             }
 
-            if ( $is_legacy_block || 
-                 strpos( $line, '$stacked_site_id' ) !== false || 
-                 strpos( $line, '$stacked_mappings' ) !== false ) {
+            if ( $is_legacy_block || strpos( $line, '$stacked_site_id' ) !== false || strpos( $line, '$stacked_mappings' ) !== false ) {
                 
-                 unset( $lines[ $key ] );
+                unset( $lines[ $key ] );
                  
-                 if ( trim( $line ) === '}' || trim( $line ) === '' ) {
+                if ( trim( $line ) === '}' || trim( $line ) === '' ) {
                      $is_legacy_block = false;
-                 }
+                }
             }
         }
         return $lines;
