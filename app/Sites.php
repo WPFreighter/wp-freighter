@@ -26,7 +26,7 @@ class Sites {
     }
 
     public function get() {
-        return $this->sites;
+        return array_values( $this->sites );
     }
 
     public static function fetch( $stacked_site_id = "" ) {
