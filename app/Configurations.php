@@ -30,7 +30,8 @@ class Configurations {
         $configs = (array) $this->configurations;
         $configs['errors'] = [];
 
-        $bootstrap_path = WP_CONTENT_DIR . '/freighter.php';
+        // Use absolute path to ensure we look in root wp-content, not the stacked site's content dir
+        $bootstrap_path = ABSPATH . 'wp-content/freighter.php';
 
         // Lazy Init
         if ( ! file_exists( $bootstrap_path ) ) {
@@ -141,7 +142,7 @@ class Configurations {
         global $wpdb;
         // 1. Generate & Write Bootstrap File
         $bootstrap_content = $this->get_bootstrap_content();
-        $bootstrap_path    = WP_CONTENT_DIR . '/freighter.php';
+        $bootstrap_path    = ABSPATH . 'wp-content/freighter.php';
         
         // Attempt write
         $bootstrap_written = @file_put_contents( $bootstrap_path, $bootstrap_content );
@@ -153,7 +154,7 @@ class Configurations {
         }
 
         if ( ! $bootstrap_written ) {
-            return; // get() will handle the error display
+            return;
         }
 
         // 2. The Clean One-Liner (No Comment)
@@ -274,13 +275,11 @@ $mapping_php
 
 // 2. Identify Stacked Site ID
 \$stacked_site_id = ( isset( \$_COOKIE[ "stacked_site_id" ] ) ? \$_COOKIE[ "stacked_site_id" ] : "" );
-
 // [GATEKEEPER] Enforce strict access control for cookie-based access
 if ( ! empty( \$stacked_site_id ) && isset( \$_COOKIE['stacked_site_id'] ) ) {
     
     // Whitelist login page (so Magic Login can function)
     \$is_login = ( isset( \$_SERVER['SCRIPT_NAME'] ) && strpos( \$_SERVER['SCRIPT_NAME'], 'wp-login.php' ) !== false );
-    
     // Check for WordPress Auth Cookie (Raw Check)
     // We check if *any* cookie starts with 'wordpress_logged_in_' because we can't validate the hash yet.
     \$has_auth_cookie = false;
@@ -356,7 +355,6 @@ EOD;
             if ( $is_legacy_block || strpos( $line, '$stacked_site_id' ) !== false || strpos( $line, '$stacked_mappings' ) !== false ) {
                 
                 unset( $lines[ $key ] );
-                 
                 if ( trim( $line ) === '}' || trim( $line ) === '' ) {
                      $is_legacy_block = false;
                 }
