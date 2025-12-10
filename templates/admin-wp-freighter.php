@@ -187,8 +187,8 @@ body #app {
                             <v-icon v-if="isSorted(columns.find(c => c.key === 'domain'))" :icon="getSortIcon(columns.find(c => c.key === 'domain'))"></v-icon>
                         </th>
                         
-                        <th v-show="configurations.files == 'dedicated'" class="font-weight-bold d-none d-md-table-cell">Files</th>
-                        <th v-show="configurations.files == 'hybrid'" class="font-weight-bold d-none d-md-table-cell">Uploads</th>
+                        <th v-if="configurations.files == 'dedicated'" class="font-weight-bold d-none d-md-table-cell">Files</th>
+                        <th v-if="configurations.files == 'hybrid'" class="font-weight-bold d-none d-md-table-cell">Uploads</th>
                         <th class="cursor-pointer font-weight-bold d-none d-md-table-cell" @click="toggleSort(columns.find(c => c.key === 'created_at'))">
                             Created At
                             <v-icon v-if="isSorted(columns.find(c => c.key === 'created_at'))" :icon="getSortIcon(columns.find(c => c.key === 'created_at'))"></v-icon>
@@ -207,17 +207,17 @@ body #app {
                         <td width="58px" class="text-caption">
                             {{ item.stacked_site_id }}
                         </td>
-                        <td v-show="configurations.domain_mapping == 'off'">
+                        <td v-if="configurations.domain_mapping == 'off'">
                             <v-text-field v-model="item.name" density="compact" hide-details variant="underlined" hide-details color="primary" @input="changeForm()"></v-text-field>
                         </td>
-                        <td v-show="configurations.domain_mapping == 'on'">
+                        <td v-if="configurations.domain_mapping == 'on'">
                             <v-text-field v-model="item.domain" density="compact" hide-details variant="underlined" hide-details color="primary" @input="changeForm()"></v-text-field>
                         </td>
  
-                        <td width="160px" class="d-none d-md-table-cell" v-show="configurations.files == 'dedicated'">
+                        <td width="160px" class="d-none d-md-table-cell" v-if="configurations.files == 'dedicated'">
                             <code>/content/{{ item.stacked_site_id }}/</code>
                         </td>
-                        <td width="200px" class="d-none d-md-table-cell" v-show="configurations.files == 'hybrid'">
+                        <td width="200px" class="d-none d-md-table-cell" v-if="configurations.files == 'hybrid'">
                             <code>/content/{{ item.stacked_site_id }}/uploads/</code>
                         </td>
                         <td width="235px" class="d-none d-md-table-cell">{{ pretty_timestamp( item.created_at ) }}</td>
