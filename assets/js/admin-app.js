@@ -1,6 +1,5 @@
 const { createApp } = Vue;
 const { createVuetify } = Vuetify;
-
 const vuetify = createVuetify({
     theme: {
         defaultTheme: 'light',
@@ -13,9 +12,21 @@ const vuetify = createVuetify({
                     error: '#FF5252',
                     info: '#2196F3',
                     success: '#4CAF50',
-                    warning: '#FFC107'
+                    warning: '#FFC107',
+                    background: '#FFFFFF',
+                    surface: '#FFFFFF',
                 }
             },
+            dark: {
+                dark: true,
+                colors: {
+                    primary: '#72aee6', // WP Admin Dark Mode Blue
+                    secondary: '#424242',
+                    surface: '#1e1e1e',
+                    background: '#121212',
+                    error: '#CF6679',
+                }
+            }
         },
     },
 });
@@ -56,18 +67,49 @@ createApp({
             },
             pending_changes: false,
             loading: false,
-            // UPDATED: 'text' -> 'title', 'value' -> 'key', 'align: right' -> 'align: end'
             headers: [
                 { title: '', key: 'stacked_site_id', sortable: false },
                 { title: 'ID', key: 'id' },
                 { title: 'Label', key: 'name' },
                 { title: 'Domain', key: 'domain' },
-                { title: 'Created At', key: 'created_at' },
+                { title: 'Created At', key: 'created_at', headerProps: { class: 'd-none d-md-table-cell' } },
                 { title: '', key: 'actions', align: "end", sortable: false }
             ],
         };
     },
+    mounted() {
+        // Load Dark Mode preference
+        const savedTheme = localStorage.getItem('wpFreighterTheme');
+        if (savedTheme) {
+            this.$vuetify.theme.global.name = savedTheme;
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            this.$vuetify.theme.global.name = 'dark';
+        }
+        
+        // Apply background immediately
+        this.updateBodyBackground();
+    },
+    watch: {
+        // Watch for theme changes to update WordPress admin background
+        '$vuetify.theme.global.name'() {
+            this.updateBodyBackground();
+        }
+    },
     methods: {
+        toggleTheme() {
+            const current = this.$vuetify.theme.global.name;
+            const next = current === 'light' ? 'dark' : 'light';
+            this.$vuetify.theme.global.name = next;
+            localStorage.setItem('wpFreighterTheme', next);
+        },
+        updateBodyBackground() {
+            const isDark = this.$vuetify.theme.global.name === 'dark';
+            const wpContent = document.querySelector('#wpcontent');
+            if (wpContent) {
+                // #121212 matches the Vuetify Dark theme background defined above
+                wpContent.style.backgroundColor = isDark ? '#121212' : '';
+            }
+        },
         pretty_timestamp( date ) {
             let d = new Date(0);
             d.setUTCSeconds(date);
@@ -90,7 +132,6 @@ createApp({
             });
         },
         copyToClipboard( text ) {
-            // Check if API is supported
             if ( !navigator.clipboard ) {
                 this.snackbarText = "Clipboard API not supported via non-secure context.";
                 this.snackbar = true;
@@ -149,7 +190,6 @@ createApp({
                 this.clone_site.source_name = item.name ? item.name : 'Site ' + item.stacked_site_id;
             }
 
-            // Pre-fill logical defaults
             if ( this.configurations.domain_mapping == 'off' ) {
                 this.clone_site.name = item.name ? item.name + " (Clone)" : "";
                 this.clone_site.domain = "";
@@ -162,11 +202,8 @@ createApp({
         openCloneMainDialog() {
             this.clone_site.source_id   = 'main';
             this.clone_site.source_name = "Main Site";
-            
-            // Reset fields
             this.clone_site.name = "";
             this.clone_site.domain = "";
-            
             this.clone_site.show = true;
         },
         processClone() {
@@ -181,7 +218,6 @@ createApp({
             .then( response => {
                 this.stacked_sites = response.data;
                 this.loading = false;
-                // Reset clone data
                 this.clone_site.source_id = null;
                 this.clone_site.name = "";
                 this.clone_site.domain = "";
@@ -195,7 +231,6 @@ createApp({
             this.loading = true;
             this.delete_site.id = stacked_site_id;
             
-            // Fetch stats first
             axios.post( wpFreighterSettings.root + 'sites/stats', {
                 'site_id': stacked_site_id
             })
@@ -210,7 +245,6 @@ createApp({
             .catch( error => {
                 this.loading = false;
                 console.log( error );
-                // Fallback to simple confirm if stats fail
                 if ( confirm( `Delete site ${stacked_site_id}?` ) ) {
                     this.confirmDelete();
                 }
@@ -224,7 +258,6 @@ createApp({
                 'site_id': this.delete_site.id,
             } )
             .then( response => {
-                // If we just deleted the site we are on, reload the page to exit
                 if ( this.delete_site.id == wpFreighterSettings.current_site_id ) {
                     location.reload();
                     return;
@@ -245,11 +278,8 @@ createApp({
                 configurations: this.configurations,
             } )
             .then( response => {
-                // Update local data
                 this.configurations = response.data;
                 this.pending_changes = false;
-                
-                // Trigger Snackbar
                 this.snackbarText = "Configurations saved.";
                 this.snackbar = true;
             })
@@ -262,11 +292,9 @@ createApp({
                 'site_id': stacked_site_id,
             } )
             .then( response => {
-                // If a login URL is returned, redirect to it to re-authenticate
                 if ( response.data.url ) {
                     window.location.href = response.data.url;
                 } else {
-                    // Fallback
                     location.reload();
                 }
             })
@@ -311,17 +339,14 @@ createApp({
             });
         },
         newSite() {
-            // UPDATED: Promise-based validation for Vuetify 3
             this.$refs.form.validate().then(result => {
                 if (!result.valid) {
                     return;
                 }
-                
                 let proceed = confirm( "Create a new stacked website?" );
                 if ( ! proceed ) {
                     return;
                 }
-                
                 this.loading = true;
                 this.new_site.show = false;
                 
