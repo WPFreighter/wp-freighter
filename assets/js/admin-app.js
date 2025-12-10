@@ -1,9 +1,12 @@
-new Vue({
-    el: '#app',
-    vuetify: new Vuetify({
-        theme: {
-            themes: {
-                light: {
+const { createApp } = Vue;
+const { createVuetify } = Vuetify;
+
+const vuetify = createVuetify({
+    theme: {
+        defaultTheme: 'light',
+        themes: {
+            light: {
+                colors: {
                     primary: '#0073aa',
                     secondary: '#424242',
                     accent: '#82B1FF',
@@ -12,57 +15,63 @@ new Vue({
                     success: '#4CAF50',
                     warning: '#FFC107'
                 }
-			},
-		},
-	}),
-    data: {
-        configurations: wpFreighterSettings.configurations || {},
-        stacked_sites: wpFreighterSettings.stacked_sites || [],
-        current_site_id: wpFreighterSettings.current_site_id || "",
-        response: "",
-        snackbar: false,
-        snackbarText: "",
-        new_site: { 
-            name: "", 
-            domain: "", 
-            title: "", 
-            email: wpFreighterSettings.currentUser.email,
-            username: wpFreighterSettings.currentUser.username,
-            password: Math.random().toString(36).slice(-10),
-            show: false, 
-            valid: true 
+            },
         },
-        clone_site: {
-            show: false,
-            valid: true,
-            source_id: null,
-            source_name: "",
-            name: "",
-            domain: ""
-        },
-        delete_site: {
-            show: false,
-            id: null,
-            has_dedicated_content: false,
-            path: "",
-            size: ""
-        },
-        pending_changes: false,
-        loading: false,
-        headers: [
-          { text: '', value: 'stacked_site_id' },
-          { text: 'ID', value: 'id' },
-          { text: 'Label', value: 'name' },
-          { text: 'Domain', value: 'domain' },
-          { text: 'Created At', value: 'created_at' },
-          { text: '', value: 'actions', align: "right" }
-        ],
+    },
+});
+
+createApp({
+    data() {
+        return {
+            configurations: wpFreighterSettings.configurations || {},
+            stacked_sites: wpFreighterSettings.stacked_sites || [],
+            current_site_id: wpFreighterSettings.current_site_id || "",
+            response: "",
+            snackbar: false,
+            snackbarText: "",
+            new_site: { 
+                name: "", 
+                domain: "", 
+                title: "", 
+                email: wpFreighterSettings.currentUser.email,
+                username: wpFreighterSettings.currentUser.username,
+                password: Math.random().toString(36).slice(-10),
+                show: false, 
+                valid: true 
+            },
+            clone_site: {
+                show: false,
+                valid: true,
+                source_id: null,
+                source_name: "",
+                name: "",
+                domain: ""
+            },
+            delete_site: {
+                show: false,
+                id: null,
+                has_dedicated_content: false,
+                path: "",
+                size: ""
+            },
+            pending_changes: false,
+            loading: false,
+            // UPDATED: 'text' -> 'title', 'value' -> 'key', 'align: right' -> 'align: end'
+            headers: [
+                { title: '', key: 'stacked_site_id', sortable: false },
+                { title: 'ID', key: 'id' },
+                { title: 'Label', key: 'name' },
+                { title: 'Domain', key: 'domain' },
+                { title: 'Created At', key: 'created_at' },
+                { title: '', key: 'actions', align: "end", sortable: false }
+            ],
+        };
     },
     methods: {
         pretty_timestamp( date ) {
-            d = new Date(0);
+            let d = new Date(0);
             d.setUTCSeconds(date);
-            formatted_date = d.toLocaleTimeString( "en-us", {
+            return d.toLocaleTimeString( "en-us", {
                 "weekday": "short",
                 "year": "numeric",
                 "month": "short",
@@ -70,17 +79,15 @@ new Vue({
                 "hour": "2-digit",
                 "minute": "2-digit"
             });
-            return formatted_date;
         },
         pretty_timestamp_mysql( date ) {
-            d = new Date( date );
-            formatted_date = d.toLocaleDateString( "en-us", {
+            let d = new Date( date );
+            return d.toLocaleDateString( "en-us", {
                 "weekday": "short",
                 "year": "numeric",
                 "month": "short",
                 "day": "numeric",
             });
-            return formatted_date;
         },
         copyToClipboard( text ) {
             // Check if API is supported
@@ -106,37 +113,36 @@ new Vue({
                 name: "", 
                 domain: "", 
                 title: "", 
-                email: wpFreighterSettings.currentUser.email, // Prefill Email
-                username: wpFreighterSettings.currentUser.username, // Prefill Username
-                password: this.generatePassword(), // Prefill Password
+                email: wpFreighterSettings.currentUser.email,
+                username: wpFreighterSettings.currentUser.username,
+                password: this.generatePassword(),
                 show: false, 
                 valid: true 
             };
         },
         changeForm() {
-            this.pending_changes = true
+            this.pending_changes = true;
         },
         cloneSite( stacked_site_id ) {
-            proceed = confirm( `Clone site ${stacked_site_id} to a new stacked website?` )
+            let proceed = confirm( `Clone site ${stacked_site_id} to a new stacked website?` );
             if ( ! proceed ) {
-                return
+                return;
             }
-            this.loading = true
+            this.loading = true;
             axios.post( wpFreighterSettings.root + 'sites/clone', {
                 'source_id': stacked_site_id
             })
             .then( response => {
-                this.stacked_sites = response.data
-                this.loading = false
+                this.stacked_sites = response.data;
+                this.loading = false;
             })
             .catch( error => {
-                this.loading = false
-                console.log( error )
+                this.loading = false;
+                console.log( error );
             });
         },
         openCloneDialog( item ) {
             this.clone_site.source_id   = item.stacked_site_id;
-
             if ( this.configurations.domain_mapping == 'on' ) {
                 this.clone_site.source_name = item.domain ? item.domain : 'Site ' + item.stacked_site_id;
             } else {
@@ -146,15 +152,14 @@ new Vue({
             // Pre-fill logical defaults
             if ( this.configurations.domain_mapping == 'off' ) {
                 this.clone_site.name = item.name ? item.name + " (Clone)" : "";
-                        this.clone_site.domain = "";
-                    } else {
-                        this.clone_site.name = ""; 
-                        this.clone_site.domain = ""; // Keep empty for user to input
-                    }
-                    this.clone_site.show = true;
+                this.clone_site.domain = "";
+            } else {
+                this.clone_site.name = "";
+                this.clone_site.domain = ""; 
+            }
+            this.clone_site.show = true;
         },
         openCloneMainDialog() {
-            // Explicitly set source_id to 'main' to trigger the new backend logic
             this.clone_site.source_id   = 'main';
             this.clone_site.source_name = "Main Site";
             
@@ -239,18 +244,18 @@ new Vue({
                 sites: this.stacked_sites,
                 configurations: this.configurations,
             } )
-                .then( response => {
-                        // Update local data
-                        this.configurations = response.data;
-                        this.pending_changes = false;
-                        
-                        // Trigger Snackbar
-                        this.snackbarText = "Configurations saved.";
-                        this.snackbar = true;
-                    })
-                    .catch( error => {
-                        console.log( error )
-                    });
+            .then( response => {
+                // Update local data
+                this.configurations = response.data;
+                this.pending_changes = false;
+                
+                // Trigger Snackbar
+                this.snackbarText = "Configurations saved.";
+                this.snackbar = true;
+            })
+            .catch( error => {
+                console.log( error );
+            });
         },
         switchTo( stacked_site_id ) {
             axios.post( wpFreighterSettings.root + 'switch', {
@@ -266,7 +271,7 @@ new Vue({
                 }
             })
             .catch( error => {
-                console.log( error )
+                console.log( error );
             });
         },
         autoLogin( item ) {
@@ -282,7 +287,7 @@ new Vue({
             })
             .catch( error => {
                 this.loading = false;
-                this.snackbarText = "Autologin failed: " + (error.response.data.message || error.message);
+                this.snackbarText = "Autologin failed: " + (error.response?.data?.message || error.message);
                 this.snackbar = true;
                 console.log( error );
             });
@@ -306,40 +311,44 @@ new Vue({
             });
         },
         newSite() {
-            this.$refs.form.validate()
-            if ( ! this.new_site.valid ) {
-                return
-            }
-            proceed = confirm( "Create a new stacked website?" )
-            if ( ! proceed ) {
-                return
-            }
-            this.loading = true
-            this.new_site.show = false
-            
-            axios.post( wpFreighterSettings.root + 'sites', this.new_site )
-                .then( response => {
-                        this.stacked_sites = response.data
-                        this.loading = false
+            // UPDATED: Promise-based validation for Vuetify 3
+            this.$refs.form.validate().then(result => {
+                if (!result.valid) {
+                    return;
+                }
+                
+                let proceed = confirm( "Create a new stacked website?" );
+                if ( ! proceed ) {
+                    return;
+                }
+                
+                this.loading = true;
+                this.new_site.show = false;
+                
+                axios.post( wpFreighterSettings.root + 'sites', this.new_site )
+                    .then( response => {
+                        this.stacked_sites = response.data;
+                        this.loading = false;
                         this.new_site = this.getNewSiteDefaults();
-                })
-                .catch( error => {
-                    this.loading = false
-                    console.log( error )
-                });
+                    })
+                    .catch( error => {
+                        this.loading = false;
+                        console.log( error );
+                    });
+            });
         },
         cloneExisting() {
-            proceed = confirm( "Clone existing site to a new stacked website?" )
+            let proceed = confirm( "Clone existing site to a new stacked website?" );
             if ( ! proceed ) {
-                return
+                return;
             }
             axios.post( wpFreighterSettings.root + 'sites/clone' )
                 .then( response => {
-                        this.stacked_sites = response.data
-                    })
-                    .catch( error => {
-                        console.log( error )
-                    });
+                    this.stacked_sites = response.data;
+                })
+                .catch( error => {
+                    console.log( error );
+                });
         }
     }
-})
+}).use(vuetify).mount('#app');

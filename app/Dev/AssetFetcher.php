@@ -6,18 +6,17 @@ class AssetFetcher {
 
     public static function fetch() {
         $base_dir = dirname( dirname( __DIR__ ) ) . '/assets';
-        
-        // Define versions here to strictly control what you ship
+    
         $versions = [
-            'vue'     => '2.7.16',
-            'vuetify' => '2.6.13',
+            'vue'     => '3.5.22',
+            'vuetify' => '3.10.5',
             'axios'   => '1.13.2',
-            'mdi'     => '7.4.47', // Latest stable MDI version
+            'mdi'     => '7.4.47',
         ];
 
         $files = [
             // JS
-            'js/vue.min.js'     => "https://cdn.jsdelivr.net/npm/vue@{$versions['vue']}/dist/vue.min.js",
+            'js/vue.min.js'     => "https://cdn.jsdelivr.net/npm/vue@{$versions['vue']}/dist/vue.global.prod.js",
             'js/vuetify.min.js' => "https://cdn.jsdelivr.net/npm/vuetify@{$versions['vuetify']}/dist/vuetify.min.js",
             'js/axios.min.js'   => "https://cdn.jsdelivr.net/npm/axios@{$versions['axios']}/dist/axios.min.js",
             
