@@ -230,7 +230,7 @@ body #app {
                         <td width="200px" v-show="configurations.files == 'hybrid'">
                             <code class="text-caption">/content/{{ item.stacked_site_id }}/uploads/</code>
                         </td>
-                        <td width="220px">{{ pretty_timestamp( item.created_at ) }}</td>
+                        <td width="235px">{{ pretty_timestamp( item.created_at ) }}</td>
                         <td width="150px" class="text-right">
                             
                             <v-tooltip location="bottom" v-if="configurations.domain_mapping == 'on'">
