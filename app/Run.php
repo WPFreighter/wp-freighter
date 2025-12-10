@@ -228,6 +228,9 @@ class Run {
         $params = $request->get_json_params();
         $site_id = (int) $params['site_id'];
 
+        // 0. Safety Check: Ensure Freighter is installed/active on target
+        Site::ensure_freighter( $site_id );
+
         // 1. Set Cookie for Context Switch
         setcookie( 'stacked_site_id', $site_id, time() + 31536000, '/' );
         $_COOKIE[ "stacked_site_id" ] = $site_id;
@@ -235,7 +238,6 @@ class Run {
         // 2. Generate Magic Login URL for the Target Site
         // We use Site::login which generates the token in the target DB
         $login_url = Site::login( $site_id );
-
         if ( is_wp_error( $login_url ) ) {
              return [ 'success' => false, 'message' => $login_url->get_error_message() ];
         }

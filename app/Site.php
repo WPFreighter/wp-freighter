@@ -12,6 +12,66 @@ class Site {
     }
 
     /**
+     * Safety Check: Ensure WP Freighter is installed and active on the target.
+     */
+    public static function ensure_freighter( $site_id ) {
+        global $wpdb;
+        
+        $configs = ( new Configurations )->get();
+
+        // Only needed for dedicated file modes where plugins aren't shared
+        if ( $configs->files !== 'dedicated' ) {
+            return;
+        }
+
+        // 1. Filesystem Check
+        // Source is the current plugin directory
+        $source = dirname( __DIR__ ); 
+        $dest   = ABSPATH . "content/$site_id/plugins/wp-freighter";
+        
+        if ( ! file_exists( $dest ) ) {
+            if ( ! file_exists( dirname( $dest ) ) ) {
+                mkdir( dirname( $dest ), 0777, true );
+            }
+            Sites::copy_recursive( $source, $dest );
+        }
+
+        // 2. Database Activation Check
+        $prefix = "stacked_{$site_id}_";
+        $table  = "{$prefix}options";
+        
+        // Check if table exists to avoid errors on corrupted sites
+        if ( $wpdb->get_var( "SHOW TABLES LIKE '$table'" ) != $table ) {
+            return;
+        }
+
+        // Fetch active_plugins raw to avoid context switching issues
+        $active_plugins_raw = $wpdb->get_var( "SELECT option_value FROM $table WHERE option_name = 'active_plugins'" );
+        $active_plugins     = empty( $active_plugins_raw ) ? [] : maybe_unserialize( $active_plugins_raw );
+        
+        if ( ! is_array( $active_plugins ) ) {
+            $active_plugins = [];
+        }
+
+        // If not active, activate it
+        if ( ! in_array( 'wp-freighter/wp-freighter.php', $active_plugins ) ) {
+            $active_plugins[] = 'wp-freighter/wp-freighter.php';
+            sort( $active_plugins );
+            
+            $new_value = serialize( $active_plugins );
+            
+            // Check if row exists to Decide Update vs Insert
+            $row_exists = $wpdb->get_var( "SELECT option_id FROM $table WHERE option_name = 'active_plugins'" );
+            
+            if ( $row_exists ) {
+                 $wpdb->query( $wpdb->prepare( "UPDATE $table SET option_value = %s WHERE option_name = 'active_plugins'", $new_value ) );
+            } else {
+                 $wpdb->query( $wpdb->prepare( "INSERT INTO $table (option_name, option_value) VALUES ('active_plugins', %s)", $new_value ) );
+            }
+        }
+    }
+
+    /**
      * Create a new stacked site.
      */
     public static function create( $args ) {
