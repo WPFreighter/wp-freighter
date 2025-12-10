@@ -225,10 +225,10 @@ body #app {
                             <v-text-field v-model="item.domain" density="compact" hide-details variant="underlined" hide-details color="primary" bg-color="white" @input="changeForm()"></v-text-field>
                         </td>
                         <td width="160px" v-show="configurations.files == 'dedicated'">
-                            <code class="text-caption">/content/{{ item.stacked_site_id }}/</code>
+                            <code>/content/{{ item.stacked_site_id }}/</code>
                         </td>
                         <td width="200px" v-show="configurations.files == 'hybrid'">
-                            <code class="text-caption">/content/{{ item.stacked_site_id }}/uploads/</code>
+                            <code>/content/{{ item.stacked_site_id }}/uploads/</code>
                         </td>
                         <td width="235px">{{ pretty_timestamp( item.created_at ) }}</td>
                         <td width="150px" class="text-right">
