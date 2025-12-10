@@ -9,15 +9,12 @@ class Run {
             
             $target_id      = (int) $_GET['stacked_site_id'];
             $current_cookie = isset( $_COOKIE['stacked_site_id'] ) ? (int) $_COOKIE['stacked_site_id'] : null;
-
             // If the cookie is missing or incorrect, set it and force a reload.
             if ( $current_cookie !== $target_id ) {
                 $cookie_path   = defined( 'SITECOOKIEPATH' ) ? SITECOOKIEPATH : '/';
                 $cookie_domain = defined( 'COOKIE_DOMAIN' ) ? COOKIE_DOMAIN : '';
-                
                 // Set the cookie for the bootstrap file (freighter.php) to find
                 setcookie( 'stacked_site_id', $target_id, time() + 31536000, $cookie_path, $cookie_domain );
-                
                 // Reload immediately so freighter.php runs with the new cookie
                 // and switches the DB prefix before the mu-plugin runs.
                 header( "Location: " . $_SERVER['REQUEST_URI'] );
@@ -51,7 +48,6 @@ class Run {
 
     public function register_rest_endpoints() {
         $namespace = 'wp-freighter/v1';
-        
         $routes = [
             '/sites' => [
                 'GET'  => 'get_sites',
@@ -79,7 +75,6 @@ class Run {
                 'POST' => 'exit_freighter'
             ],
         ];
-
         foreach ( $routes as $route => $methods ) {
             foreach ( $methods as $method => $callback ) {
                 register_rest_route( $namespace, $route, [
@@ -104,7 +99,6 @@ class Run {
 
     public function new_site( $request ) {
         $params = $request->get_json_params();
-        
         // Sanitize incoming parameters
         $clean_params = [];
         $clean_params['title']    = isset($params['title']) ? sanitize_text_field($params['title']) : 'New Site';
@@ -115,13 +109,11 @@ class Run {
         
         $clean_params['username'] = isset($params['username']) ? sanitize_user($params['username']) : 'admin';
         $clean_params['email']    = isset($params['email']) ? sanitize_email($params['email']) : '';
-        
         // Passwords should be kept raw for complexity, but only if they are set
         $clean_params['password'] = isset($params['password']) ? $params['password'] : '';
 
         // Delegate to Site Model with clean data
         $result = Site::create( $clean_params );
-
         if ( is_wp_error( $result ) ) {
             return $result;
         }
@@ -136,7 +128,6 @@ class Run {
 
         // Delegate to Site Model
         Site::delete( $site_id );
-        
         // If we are deleting the site we are currently viewing, kill the session cookie
         if ( isset( $_COOKIE['stacked_site_id'] ) && $_COOKIE['stacked_site_id'] == $site_id ) {
             $this->exit_freighter( $request );
@@ -147,7 +138,6 @@ class Run {
 
     public function clone_existing( $request ) {
         $params    = $request->get_json_params();
-        
         // Allow 'main' or an integer ID
         $source_id = isset( $params['source_id'] ) ? $params['source_id'] : 'main';
         if ( $source_id !== 'main' ) {
@@ -160,7 +150,6 @@ class Run {
         ];
 
         $result = Site::clone( $source_id, $args );
-
         if ( is_wp_error( $result ) ) {
             return $result;
         }
@@ -170,7 +159,6 @@ class Run {
 
     public function auto_login( $request ) {
         $params = $request->get_json_params();
-        
         // Allow 'main' or an integer ID
         $site_id = isset( $params['site_id'] ) ? $params['site_id'] : '';
         if ( $site_id !== 'main' ) {
@@ -179,7 +167,6 @@ class Run {
 
         // Delegate to Site Model
         $login_url = Site::login( $site_id );
-
         if ( is_wp_error( $login_url ) ) {
             return $login_url;
         }
@@ -191,7 +178,6 @@ class Run {
         $params = $request->get_json_params();
         $sites_data = isset($params['sites']) ? $params['sites'] : [];
         $configs_data = isset($params['configurations']) ? $params['configurations'] : [];
-        
         // Use Sites class for bulk update
         ( new Sites )->update( $sites_data );
         ( new Configurations )->update( $configs_data );
@@ -248,7 +234,6 @@ class Run {
     public function exit_freighter( $request ) {
         // 1. Generate Login URL for Main Site with Redirection
         $login_url = Site::login( 'main', 'wp-admin/tools.php?page=wp-freighter' );
-
         // 2. Clear Session Cookie
         setcookie( 'stacked_site_id', null, -1, '/');
         unset( $_COOKIE[ "stacked_site_id" ] );
@@ -273,7 +258,6 @@ class Run {
         $stacked_sites   = ( new Sites )->get();
         $stacked_site_id = empty ( $_COOKIE[ "stacked_site_id" ] ) ? "" : $_COOKIE[ "stacked_site_id" ];
         $item = null;
-
         foreach( $stacked_sites as $stacked_site ) {
             if ( $stacked_site_id == $stacked_site['stacked_site_id'] ) {
                 $item = $stacked_site;
@@ -311,7 +295,6 @@ class Run {
 
         // Define the root URL for the plugin assets
         $plugin_url = plugin_dir_url( dirname( __DIR__ ) . '/wp-freighter.php' );
-
         // 1. Enqueue Local CSS
         wp_enqueue_style( 'vuetify', $plugin_url . 'assets/css/vuetify.min.css', [], '3.10.5' );
         wp_enqueue_style( 'mdi', $plugin_url . 'assets/css/materialdesignicons.min.css', [], '7.4.47' );
@@ -320,15 +303,23 @@ class Run {
         wp_enqueue_script( 'axios', $plugin_url . 'assets/js/axios.min.js', [], '1.13.2', true );
         wp_enqueue_script( 'vue', $plugin_url . 'assets/js/vue.min.js', [], '3.5.22', true );
         wp_enqueue_script( 'vuetify', $plugin_url . 'assets/js/vuetify.min.js', [ 'vue' ], '3.10.5', true );
-
         // 3. Enqueue App Logic
         wp_enqueue_script( 'wp-freighter-app', $plugin_url . 'assets/js/admin-app.js', [ 'vuetify', 'axios' ], WP_FREIGHTER_VERSION, true );
+        
+        // 4. Determine Current Site ID (Cookie vs Global)
+        // Check for global variable set by domain mapping/bootstrap
+        global $stacked_site_id;
+        $current_id = isset( $_COOKIE['stacked_site_id'] ) ? sanitize_text_field( $_COOKIE['stacked_site_id'] ) : '';
+        
+        if ( ! empty( $stacked_site_id ) ) {
+            $current_id = $stacked_site_id;
+        }
 
-        // 4. Localize Data
+        // 5. Localize Data
         $data = [
             'root'            => esc_url_raw( rest_url( 'wp-freighter/v1/' ) ),
             'nonce'           => wp_create_nonce( 'wp_rest' ),
-            'current_site_id' => isset( $_COOKIE['stacked_site_id'] ) ? sanitize_text_field( $_COOKIE['stacked_site_id'] ) : '',
+            'current_site_id' => $current_id,
             'currentUser'     => [
                 'username' => wp_get_current_user()->user_login,
                 'email'    => wp_get_current_user()->user_email,
@@ -338,7 +329,7 @@ class Run {
         ];
         wp_localize_script( 'wp-freighter-app', 'wpFreighterSettings', $data );
         
-        // 5. Set Axios Defaults
+        // 6. Set Axios Defaults
         wp_add_inline_script( 'wp-freighter-app', "axios.defaults.headers.common['X-WP-Nonce'] = wpFreighterSettings.nonce; axios.defaults.headers.common['Content-Type'] = 'application/json';", 'after' );
     }
 
@@ -365,7 +356,6 @@ class Run {
         ];
 
         $wp_config_file = $this->get_wp_config_path();
-
         if ( empty ( $wp_config_file ) ) {
             ( new Configurations )->update_config( "unable_to_save", $lines_to_add );
             return;
@@ -373,10 +363,8 @@ class Run {
 
         $wp_config_content = file_get_contents( $wp_config_file );
         $working           = preg_split( '/\R/', $wp_config_content );
-
         // Clean existing freighter configs
         $working = $this->clean_wp_config_lines( $working );
-
         // Comment out manually set WP_HOME or WP_SITEURL
         foreach( $working as $key => $line ) {
             if ( strpos( $line, "define('WP_HOME'" ) === 0 || strpos( $line, "define('WP_SITEURL'" ) === 0 ) {
@@ -406,7 +394,6 @@ class Run {
 
         // Insert new lines
         $updated = array_merge( array_slice( $working, 0, $table_prefix_line + 1, true ), $lines_to_add, array_slice( $working, $table_prefix_line + 1, count( $working ), true ) );
-
         // Save
         $results = @file_put_contents( $wp_config_file, implode( PHP_EOL, $updated ) );
         if ( empty( $results ) ) {
@@ -416,23 +403,19 @@ class Run {
 
     public function deactivate() {
         $wp_config_file = $this->get_wp_config_path();
-
         if ( empty ( $wp_config_file ) ) {
             return;
         }
 
         $wp_config_content = file_get_contents( $wp_config_file );
         $working           = preg_split( '/\R/', $wp_config_content );
-
         // Remove WP Freighter configs
         $working = $this->clean_wp_config_lines( $working );
-
         @file_put_contents( $wp_config_file, implode( PHP_EOL, $working ) );
     }
 
     public function handle_auto_login() {
         global $pagenow;
-
         // Standard Token Verification
         if ( 'wp-login.php' !== $pagenow || empty( $_GET['user_id'] ) || empty( $_GET['captaincore_login_token'] ) ) {
             return;
