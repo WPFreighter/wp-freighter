@@ -67,72 +67,67 @@ body #app {
             <v-toolbar flat density="compact" color="surface">
                 <v-toolbar-title class="font-weight-bold">WP Freighter</v-toolbar-title>
                 <v-spacer></v-spacer>
+                <v-btn v-if="configurations.domain_mapping == 'on' && current_site_id != ''" color="secondary" variant="flat" class="mr-2" size="small" @click="loginToMain()">
+                    <v-icon start>mdi-login-variant</v-icon> <span class="d-none d-sm-inline">Login to main site</span>
+                </v-btn>
+                <v-btn color="secondary" variant="flat" class="mr-2" size="small" @click="openCloneMainDialog()">
+                    <v-icon start>mdi-content-copy</v-icon> <span class="d-none d-sm-inline">Clone main site</span>
+                </v-btn>
+                <v-dialog v-model="new_site.show" persistent max-width="600px" :transition="false">
+                    <template v-slot:activator="{ props }">
+                        <v-btn variant="flat" color="secondary" class="mr-1" size="small" v-bind="props">
+                            <v-icon start>mdi-plus</v-icon> <span class="d-none d-sm-inline">Add new empty site</span>
+                        </v-btn>
+                    </template>
+                    <v-card>
+                        <v-card-title>New Site</v-card-title>
+                        <v-card-text>
+                        <v-form ref="form" v-model="new_site.valid">
+                        <v-container>
+                            <v-row>
+                            <v-col cols="12" sm="6" md="6" v-show="configurations.domain_mapping == 'off'">
+                                <v-text-field v-model="new_site.name" label="Label" variant="underlined"></v-text-field>
+                            </v-col>
+                            <v-col cols="12" sm="6" md="6" v-show="configurations.domain_mapping == 'on'">
+                                <v-text-field v-model="new_site.domain" label="Domain" variant="underlined"></v-text-field>
+                            </v-col>
+                            <v-col cols="12" sm="6" md="6">
+                                <v-text-field v-model="new_site.title" label="Title*" :rules="[ value => !!value || 'Required.' ]" variant="underlined"></v-text-field>
+                            </v-col>
+                            <v-col cols="12" sm="6" md="6">
+                                <v-text-field v-model="new_site.email" label="Email*" :rules="[ value => !!value || 'Required.' ]" variant="underlined"></v-text-field>
+                            </v-col>
+                            <v-col cols="12" sm="6" md="6">
+                                <v-text-field v-model="new_site.username" label="Username*" :rules="[ value => !!value || 'Required.' ]" variant="underlined"></v-text-field>
+                            </v-col>
+                            <v-col cols="12" sm="6" md="6">
+                                <v-text-field 
+                                    v-model="new_site.password" 
+                                    label="Password*" 
+                                    type="text" 
+                                    append-inner-icon="mdi-refresh"
+                                    @click:append-inner="new_site.password = generatePassword()"
+                                    hide-details
+                                    :rules="[ value => !!value || 'Required.' ]"
+                                    variant="underlined"
+                                ></v-text-field>
+                            </v-col>
+                            </v-row>
+                        </v-container>
+                        <small class="text-caption">*indicates required field</small>
+                        </v-form>
+                        </v-card-text>
+                        <v-card-actions>
+                            <v-spacer></v-spacer>
+                            <v-btn color="primary" variant="text" @click="new_site.show = false">Close</v-btn>
+                            <v-btn color="primary" variant="text" @click="newSite()">Create new site</v-btn>
+                        </v-card-actions>
+                    </v-card>
+                </v-dialog>
 
-                <v-toolbar-items>
-                    <v-btn v-if="configurations.domain_mapping == 'on' && configurations.current_site_id != ''" variant="text" @click="loginToMain()">
-                       <v-icon start>mdi-login-variant</v-icon> <span class="d-none d-sm-inline">Login to main site</span>
-                    </v-btn>
-                    
-                    <v-btn variant="text" @click="openCloneMainDialog()">
-                        <v-icon start>mdi-content-copy</v-icon> <span class="d-none d-sm-inline">Clone main site</span>
-                    </v-btn>
-                    
-                    <v-dialog v-model="new_site.show" persistent max-width="600px">
-                        <template v-slot:activator="{ props }">
-                            <v-btn variant="text" v-bind="props">
-                                <v-icon start>mdi-plus</v-icon> <span class="d-none d-sm-inline">Add new empty site</span>
-                            </v-btn>
-                        </template>
-                        <v-card>
-                            <v-card-title>New Site</v-card-title>
-                            <v-card-text>
-                            <v-form ref="form" v-model="new_site.valid">
-                            <v-container>
-                                <v-row>
-                                <v-col cols="12" sm="6" md="6" v-show="configurations.domain_mapping == 'off'">
-                                    <v-text-field v-model="new_site.name" label="Label" variant="underlined"></v-text-field>
-                                </v-col>
-                                <v-col cols="12" sm="6" md="6" v-show="configurations.domain_mapping == 'on'">
-                                    <v-text-field v-model="new_site.domain" label="Domain" variant="underlined"></v-text-field>
-                                </v-col>
-                                <v-col cols="12" sm="6" md="6">
-                                    <v-text-field v-model="new_site.title" label="Title*" :rules="[ value => !!value || 'Required.' ]" variant="underlined"></v-text-field>
-                                </v-col>
-                                <v-col cols="12" sm="6" md="6">
-                                    <v-text-field v-model="new_site.email" label="Email*" :rules="[ value => !!value || 'Required.' ]" variant="underlined"></v-text-field>
-                                </v-col>
-                                <v-col cols="12" sm="6" md="6">
-                                    <v-text-field v-model="new_site.username" label="Username*" :rules="[ value => !!value || 'Required.' ]" variant="underlined"></v-text-field>
-                                </v-col>
-                                <v-col cols="12" sm="6" md="6">
-                                    <v-text-field 
-                                        v-model="new_site.password" 
-                                        label="Password*" 
-                                        type="text" 
-                                        append-inner-icon="mdi-refresh"
-                                        @click:append-inner="new_site.password = generatePassword()"
-                                        hide-details
-                                        :rules="[ value => !!value || 'Required.' ]"
-                                        variant="underlined"
-                                    ></v-text-field>
-                                </v-col>
-                                </v-row>
-                            </v-container>
-                            <small class="text-caption">*indicates required field</small>
-                            </v-form>
-                            </v-card-text>
-                            <v-card-actions>
-                                <v-spacer></v-spacer>
-                                <v-btn color="primary" variant="text" @click="new_site.show = false">Close</v-btn>
-                                <v-btn color="primary" variant="text" @click="newSite()">Create new site</v-btn>
-                            </v-card-actions>
-                        </v-card>
-                    </v-dialog>
-
-                    <v-btn icon variant="text" @click="toggleTheme" class="mr-2">
-                        <v-icon>{{ $vuetify.theme.global.name === 'dark' ? 'mdi-weather-sunny' : 'mdi-weather-night' }}</v-icon>
-                    </v-btn>
-                </v-toolbar-items>
+                <v-btn icon variant="text" @click="toggleTheme" class="mr-2">
+                    <v-icon>{{ $vuetify.theme.global.name === 'dark' ? 'mdi-weather-sunny' : 'mdi-weather-night' }}</v-icon>
+                </v-btn>
             </v-toolbar>
       
             <v-card-text>
@@ -327,7 +322,7 @@ body #app {
         </v-row>
       </v-container>
 
-      <v-dialog v-model="clone_site.show" persistent max-width="600px">
+      <v-dialog v-model="clone_site.show" persistent max-width="600px" :transition="false">
             <v-card>
                 <v-card-title>Clone Site</v-card-title>
                 <v-card-text>
@@ -368,7 +363,7 @@ body #app {
             </v-card>
         </v-dialog>
 
-        <v-dialog v-model="delete_site.show" persistent max-width="500px">
+        <v-dialog v-model="delete_site.show" persistent max-width="500px" :transition="false">
             <v-card>
                 <v-card-title class="text-h5">Delete Site?</v-card-title>
                 <v-card-text>
