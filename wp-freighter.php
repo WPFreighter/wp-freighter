@@ -25,6 +25,8 @@ if ( ! defined( 'WPINC' ) ) {
 	die;
 }
 
+define( 'WP_FREIGHTER_VERSION', '1.4.0' );
+
 require plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
 new WPFreighter\Run();
 new WPFreighter\Updater();

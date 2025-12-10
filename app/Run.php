@@ -310,19 +310,17 @@ class Run {
         // Define the root URL for the plugin assets
         $plugin_url = plugin_dir_url( dirname( __DIR__ ) . '/wp-freighter.php' );
 
-        // 1. Enqueue Local CSS (Update version to 3.10.5)
+        // 1. Enqueue Local CSS
         wp_enqueue_style( 'vuetify', $plugin_url . 'assets/css/vuetify.min.css', [], '3.10.5' );
         wp_enqueue_style( 'mdi', $plugin_url . 'assets/css/materialdesignicons.min.css', [], '7.4.47' );
 
         // 2. Enqueue Local JS
         wp_enqueue_script( 'axios', $plugin_url . 'assets/js/axios.min.js', [], '1.13.2', true );
-        
-        // UPDATE: Vue 3 and Vuetify 3
         wp_enqueue_script( 'vue', $plugin_url . 'assets/js/vue.min.js', [], '3.5.22', true );
         wp_enqueue_script( 'vuetify', $plugin_url . 'assets/js/vuetify.min.js', [ 'vue' ], '3.10.5', true );
 
         // 3. Enqueue App Logic
-        wp_enqueue_script( 'wp-freighter-app', $plugin_url . 'assets/js/admin-app.js', [ 'vuetify', 'axios' ], '1.4.0', true );
+        wp_enqueue_script( 'wp-freighter-app', $plugin_url . 'assets/js/admin-app.js', [ 'vuetify', 'axios' ], WP_FREIGHTER_VERSION, true );
 
         // 4. Localize Data
         $data = [
