@@ -19,7 +19,6 @@ class CLI extends WP_CLI_Command {
      */
     public function info( $args, $assoc_args ) {
         global $wpdb;
-
         // 1. Get Configurations
         $configs = ( new Configurations )->get();
         // 2. Get Site List & Count
@@ -34,13 +33,10 @@ class CLI extends WP_CLI_Command {
         }
 
         $main_site_url = $wpdb->get_var( "SELECT option_value FROM {$db_prefix_primary}options WHERE option_name = 'home'" );
-
         // 4. Output Details
         WP_CLI::line( "Main site: " . $main_site_url );
-
         // 5. Check for Environment Variable
         $current_env_id = getenv( 'STACKED_SITE_ID' );
-
         if ( $current_env_id !== false && $current_env_id !== '' ) {
             $site_details = "{$current_env_id} (Not found)";
             foreach ( $sites as $site ) {
@@ -94,7 +90,6 @@ class CLI extends WP_CLI_Command {
         }
 
         $configs = ( new Configurations )->get();
-
         if ( 'get' === $action ) {
             WP_CLI::line( "Current Files Mode: " . WP_CLI::colorize( "%G" . $configs->files . "%n" ) );
             return;
@@ -139,7 +134,6 @@ class CLI extends WP_CLI_Command {
         }
 
         $configs = ( new Configurations )->get();
-
         if ( 'get' === $action ) {
             WP_CLI::line( "Current Domain Mapping: " . WP_CLI::colorize( "%G" . $configs->domain_mapping . "%n" ) );
             return;
@@ -153,7 +147,6 @@ class CLI extends WP_CLI_Command {
 
             $data = (array) $configs;
             $data['domain_mapping'] = $status;
-            
             ( new Configurations )->update( $data );
             WP_CLI::success( "Domain mapping updated to '{$status}'." );
         }
@@ -188,10 +181,8 @@ class CLI extends WP_CLI_Command {
                 'Created' => date( 'Y-m-d H:i:s', $site['created_at'] ),
             ];
         }, $sites );
-
         // Build columns dynamically based on configurations
         $fields = [ 'ID' ];
-
         // Toggle Name vs Domain
         if ( $configs->domain_mapping === 'on' ) {
             $fields[] = 'Domain';
@@ -250,17 +241,14 @@ class CLI extends WP_CLI_Command {
         }
 
         WP_CLI::line( "Creating site..." );
-
         // Delegate directly to the Site model
         $result = Site::create( $assoc_args );
-
         if ( is_wp_error( $result ) ) {
             WP_CLI::error( "Failed to create site: " . $result->get_error_message() );
         }
 
         WP_CLI::success( "Site created successfully." );
         WP_CLI::line( "ID: " . $result['stacked_site_id'] );
-        
         // Only show password if we generated it or user provided it (it's in assoc_args if provided)
         if ( isset( $assoc_args['password'] ) ) {
              WP_CLI::line( "Password: " . $assoc_args['password'] );
@@ -286,12 +274,9 @@ class CLI extends WP_CLI_Command {
      */
     public function delete( $args, $assoc_args ) {
         list( $site_id ) = $args;
-
         WP_CLI::confirm( "Are you sure you want to delete Site ID {$site_id}? This will drop tables and delete files.", $assoc_args );
-
         // Delegate directly to the Site model
         $success = Site::delete( $site_id );
-
         if ( $success ) {
             WP_CLI::success( "Site {$site_id} deleted." );
         } else {
@@ -320,17 +305,14 @@ class CLI extends WP_CLI_Command {
      */
     public function clone_site( $args, $assoc_args ) {
         list( $source_id ) = $args;
-        
         $clone_args = [
             'name'   => isset( $assoc_args['name'] ) ? $assoc_args['name'] : '',
             'domain' => isset( $assoc_args['domain'] ) ? $assoc_args['domain'] : '',
         ];
 
         WP_CLI::line( "Cloning site ID '{$source_id}'..." );
-
         // Delegate directly to the Site model
         $result = Site::clone( $source_id, $clone_args );
-
         if ( is_wp_error( $result ) ) {
             WP_CLI::error( "Clone failed: " . $result->get_error_message() );
         }
@@ -369,7 +351,6 @@ class CLI extends WP_CLI_Command {
 
         // Delegate to Site Model
         $login_url = Site::login( $site_id );
-
         if ( is_wp_error( $login_url ) ) {
             WP_CLI::error( "Failed to generate login URL: " . $login_url->get_error_message() );
         }
@@ -380,6 +361,18 @@ class CLI extends WP_CLI_Command {
             WP_CLI::success( "Magic login URL generated:" );
             WP_CLI::line( $login_url );
         }
+    }
+
+    /**
+     * Regenerate the WP Freighter configuration files.
+     *
+     * ## EXAMPLES
+     *
+     * wp freighter regenerate
+     */
+    public function regenerate( $args, $assoc_args ) {
+        ( new Configurations )->refresh_configs();
+        WP_CLI::success( "Configuration files regenerated." );
     }
 
 }
