@@ -64,10 +64,10 @@ body #app {
                 <v-progress-circular size="64" color="primary" indeterminate></v-progress-circular>
             </v-overlay>
 
-            <v-toolbar flat density="compact" color="surface">
+            <v-toolbar flat color="surface">
                 <v-toolbar-title class="font-weight-bold">WP Freighter</v-toolbar-title>
                 <v-spacer></v-spacer>
-                <v-btn v-if="configurations.domain_mapping == 'on' && current_site_id != ''" color="secondary" variant="flat" class="mr-2" size="small" @click="loginToMain()">
+                <v-btn v-if="configurations.domain_mapping == 'on' && current_site_id != ''" color="secondary" variant="flat" class="mr-2 mt-1" size="small" @click="loginToMain()">
                     <v-icon start>mdi-login-variant</v-icon> <span class="d-none d-sm-inline">Login to main site</span>
                 </v-btn>
                 <v-btn color="secondary" variant="flat" class="mr-2" size="small" @click="openCloneMainDialog()">
@@ -198,14 +198,14 @@ body #app {
                 </template>
                 <template v-slot:item="{ item }">
                     <tr>
-                        <td width="130px" class="pa-2">
+                        <td width="122px" class="pa-2">
                             <v-btn v-if="configurations.domain_mapping == 'off'" size="small" color="primary" class="text-white" elevation="0" @click="switchTo( item.stacked_site_id )">Switch To</v-btn>
                             <v-btn v-else color="primary" :href="`//${item.domain}`" size="small" target="_new" variant="flat" class="text-white">
                                 <v-icon size="small" start>mdi-open-in-new</v-icon> Open
                             </v-btn>
                         </td>
                         <td width="58px" class="text-caption">
-                            {{ item.stacked_site_id }}
+                            <code>{{ item.stacked_site_id }}</code>
                         </td>
                         <td v-if="configurations.domain_mapping == 'off'">
                             <v-text-field v-model="item.name" density="compact" hide-details variant="underlined" hide-details color="primary" @input="changeForm()"></v-text-field>
@@ -254,31 +254,31 @@ body #app {
                 </v-data-table>
 
                 <div class="text-subtitle-2 text-medium-emphasis mt-6 mb-2" id="files">Files</div>
-                <v-radio-group v-model="configurations.files" @change="changeForm()" density="compact" class="ml-3 mt-0">
-                    <v-row>
+                <v-radio-group v-model="configurations.files" @change="changeForm()" density="compact">
+                    <v-row dense>
                         <v-col cols="12" sm="3" md="2">
                             <v-radio value="shared" color="primary">
-                                <template v-slot:label><strong class="text-body-2 text-high-emphasis">Shared</strong></template>
+                                <template v-slot:label><strong class="text-body-1 text-high-emphasis">Shared</strong></template>
                             </v-radio>
                         </v-col>
                         <v-col cols="12" sm="9" md="10" class="d-flex align-center text-body-2 pt-0 pt-sm-3">
                             <div>Single <code class="mx-1">/wp-content/</code> folder. Any file changes to plugins, themes and uploads will affect all sites.</div>
                         </v-col>
                     </v-row>
-                    <v-row>
+                    <v-row dense>
                         <v-col cols="12" sm="3" md="2">
                             <v-radio value="hybrid" color="primary">
-                                <template v-slot:label><strong class="text-body-2 text-high-emphasis">Hybrid</strong></template>
+                                <template v-slot:label><strong class="text-body-1 text-high-emphasis">Hybrid</strong></template>
                             </v-radio>
                         </v-col>
                         <v-col cols="12" sm="9" md="10" class="d-flex align-center text-body-2 pt-0 pt-sm-3">
                              <div>Shared <code class="mx-1">plugins</code> and <code class="mx-1">themes</code>, but unique <code class="mx-1">uploads</code> folder stored under <code class="mx-1">/content/(site-id)/uploads/</code>.</div>
                         </v-col>
                     </v-row>
-                    <v-row>
+                    <v-row dense>
                         <v-col cols="12" sm="3" md="2">
                             <v-radio value="dedicated" color="primary">
-                                <template v-slot:label><strong class="text-body-2 text-high-emphasis">Dedicated</strong></template>
+                                <template v-slot:label><strong class="text-body-1 text-high-emphasis">Dedicated</strong></template>
                             </v-radio>
                         </v-col>
                         <v-col cols="12" sm="9" md="10" class="d-flex align-center text-body-2 pt-0 pt-sm-3">
@@ -288,21 +288,21 @@ body #app {
                 </v-radio-group>
 
                 <div class="text-subtitle-2 text-medium-emphasis mt-4 mb-2" id="domain-mapping">Domain Mapping</div>
-                <v-radio-group v-model="configurations.domain_mapping" @change="changeForm()" density="compact" class="ml-3 mt-0">
-                    <v-row>
+                <v-radio-group v-model="configurations.domain_mapping" @change="changeForm()" density="compact">
+                    <v-row dense>
                         <v-col cols="12" sm="3" md="2">
                             <v-radio value="off" color="primary">
-                                <template v-slot:label><strong class="text-body-2 text-high-emphasis">Off</strong></template>
+                                <template v-slot:label><strong class="text-body-1 text-high-emphasis">Off</strong></template>
                             </v-radio>
                         </v-col>
                         <v-col cols="12" sm="9" md="10" class="d-flex align-center text-body-2 pt-0 pt-sm-3">
                             <div>Easy option - Only logged in users can view stacked sites. Each site will share existing URL and SSL.</div>
                         </v-col>
                     </v-row>
-                    <v-row>
+                    <v-row dense>
                         <v-col cols="12" sm="3" md="2">
                             <v-radio value="on" color="primary">
-                                <template v-slot:label><strong class="text-body-2 text-high-emphasis">On</strong></template>
+                                <template v-slot:label><strong class="text-body-1 text-high-emphasis">On</strong></template>
                             </v-radio>
                         </v-col>
                         <v-col cols="12" sm="9" md="10" class="d-flex align-center text-body-2 pt-0 pt-sm-3">
