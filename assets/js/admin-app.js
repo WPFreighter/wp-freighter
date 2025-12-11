@@ -165,7 +165,7 @@ createApp({
             this.pending_changes = true;
         },
         cloneSite( stacked_site_id ) {
-            let proceed = confirm( `Clone site ${stacked_site_id} to a new stacked website?` );
+            let proceed = confirm( `Clone site ${stacked_site_id} to a new tenant website?` );
             if ( ! proceed ) {
                 return;
             }
@@ -343,7 +343,7 @@ createApp({
                 if (!result.valid) {
                     return;
                 }
-                let proceed = confirm( "Create a new stacked website?" );
+                let proceed = confirm( "Create a new tenant website?" );
                 if ( ! proceed ) {
                     return;
                 }
@@ -363,7 +363,7 @@ createApp({
             });
         },
         cloneExisting() {
-            let proceed = confirm( "Clone existing site to a new stacked website?" );
+            let proceed = confirm( "Clone existing site to a new tenant website?" );
             if ( ! proceed ) {
                 return;
             }

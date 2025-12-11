@@ -72,7 +72,7 @@ class Site {
     }
 
     /**
-     * Create a new stacked site.
+     * Create a new tenant site.
      */
     public static function create( $args ) {
         global $wpdb, $table_prefix;
@@ -198,7 +198,7 @@ class Site {
     }
 
     /**
-     * Delete a stacked site.
+     * Delete a tenant site.
      */
     public static function delete( $site_id ) {
         global $wpdb;

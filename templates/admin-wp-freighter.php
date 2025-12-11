@@ -133,7 +133,7 @@ body #app {
             <v-card-text>
                 <v-alert type="error" variant="outlined" v-if="configurations.errors && configurations.errors.manual_bootstrap_required">
                     <h3 class="text-h6 mb-2">Permission Error: Unable to create bootstrap file</h3>
-                    <p>WP Freighter cannot write to your <code>wp-content</code> directory. You must manually create this file to enable your stacked sites.</p>
+                    <p>WP Freighter cannot write to your <code>wp-content</code> directory. You must manually create this file to enable your tenant sites.</p>
                     <p class="mt-2"><strong>1. Create a new file:</strong><br><code>/wp-content/freighter.php</code></p>
                     <p><strong>2. Paste the following code into it:</strong></p>
                     <v-textarea variant="outlined" readonly :model-value="configurations.errors.manual_bootstrap_required" height="300px" class="mt-2" style="font-family: monospace; font-size: 12px;"></v-textarea>
@@ -163,7 +163,7 @@ body #app {
                     </v-btn>
                 </v-alert>
 
-                <div class="text-subtitle text-medium-emphasis mb-2 ml-2">Stacked Sites</div>
+                <div class="text-subtitle text-medium-emphasis mb-2 ml-2">Tenant Sites</div>
 
                 <v-data-table
                     :headers="headers"
@@ -248,7 +248,7 @@ body #app {
                 </template>
                 <template v-slot:no-data>
                     <div class="text-center grey--text pa-4">
-                        You have no stacked sites.
+                        You have no tenant sites.
                     </div>
                 </template>
                 </v-data-table>
@@ -296,7 +296,7 @@ body #app {
                             </v-radio>
                         </v-col>
                         <v-col cols="12" sm="9" md="10" class="d-flex align-center text-body-2 pt-0 pt-sm-3">
-                            <div>Easy option - Only logged in users can view stacked sites. Each site will share existing URL and SSL.</div>
+                            <div>Easy option - Only logged in users can view tenant sites. Each site will share existing URL and SSL.</div>
                         </v-col>
                     </v-row>
                     <v-row dense>

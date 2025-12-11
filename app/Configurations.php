@@ -30,7 +30,7 @@ class Configurations {
         $configs = (array) $this->configurations;
         $configs['errors'] = [];
 
-        // Use absolute path to ensure we look in root wp-content, not the stacked site's content dir
+        // Use absolute path to ensure we look in root wp-content, not the tenant site's content dir
         $bootstrap_path = ABSPATH . 'wp-content/freighter.php';
 
         // Lazy Init
@@ -273,7 +273,7 @@ PHP;
 // 1. Define Mappings
 $mapping_php
 
-// 2. Identify Stacked Site ID
+// 2. Identify Tenant Site ID
 \$stacked_site_id = ( isset( \$_COOKIE[ "stacked_site_id" ] ) ? \$_COOKIE[ "stacked_site_id" ] : "" );
 // [GATEKEEPER] Enforce strict access control for cookie-based access
 if ( ! empty( \$stacked_site_id ) && isset( \$_COOKIE['stacked_site_id'] ) ) {

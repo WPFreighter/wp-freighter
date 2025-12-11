@@ -282,7 +282,7 @@ class Run {
         if ( empty( $stacked_site_id ) ) {
             $admin_bar->add_menu( [
                 'id'    => 'wp-freighter-enter',
-                'title' => '<span class="ab-icon dashicons dashicons-welcome-view-site"></span>View Stacked Sites',
+                'title' => '<span class="ab-icon dashicons dashicons-welcome-view-site"></span>View Tenant Sites',
                 'href'  => '/wp-admin/tools.php?page=wp-freighter',
             ] );
         }

@@ -153,7 +153,7 @@ class CLI extends WP_CLI_Command {
     }
 
     /**
-     * List all stacked sites.
+     * List all tenant sites.
      *
      * ## EXAMPLES
      *
@@ -166,7 +166,7 @@ class CLI extends WP_CLI_Command {
         $configs = ( new Configurations )->get();
 
         if ( empty( $sites ) ) {
-            WP_CLI::line( "No stacked sites found." );
+            WP_CLI::line( "No tenant sites found." );
             return;
         }
 
@@ -205,7 +205,7 @@ class CLI extends WP_CLI_Command {
     }
 
     /**
-     * Create a new stacked site.
+     * Create a new tenant site.
      *
      * ## OPTIONS
      *
@@ -258,12 +258,12 @@ class CLI extends WP_CLI_Command {
     }
 
     /**
-     * Delete a stacked site.
+     * Delete a tenant site.
      *
      * ## OPTIONS
      *
      * <id>
-     * : The Stacked Site ID to delete.
+     * : The Tenant Site ID to delete.
      *
      * [--yes]
      * : Skip confirmation.
@@ -326,7 +326,7 @@ class CLI extends WP_CLI_Command {
      * ## OPTIONS
      *
      * <id>
-     * : The Stacked Site ID to login to. Use 'main' for the primary site.
+     * : The Tenant Site ID to login to. Use 'main' for the primary site.
      *
      * [--url-only]
      * : Output only the URL (useful for piping to other commands/browsers).

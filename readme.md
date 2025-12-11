@@ -11,8 +11,8 @@ WP Freighter allows you to efficiently run many WordPress sites from a single Wo
     *   **Shared:** All sites share plugins, themes, and uploads (Single `/wp-content/`).
     *   **Hybrid:** Shared plugins and themes, but unique uploads for every site (Standardized stack, unique content).
     *   **Dedicated:** Completely unique `/wp-content/` directory for every site (Full isolation).
-*   **One-Click Cloning** - Clone your main site or *any* existing stacked site to a new environment. Perfect for staging or testing.
-*   **Domain Mapping** - Map unique custom domains to specific stacked sites or use the parent domain for easy access.
+*   **One-Click Cloning** - Clone your main site or *any* existing tenant site to a new environment. Perfect for staging or testing.
+*   **Domain Mapping** - Map unique custom domains to specific tenant sites or use the parent domain for easy access.
 *   **Magic Login** - Generate one-time auto-login links to jump between site dashboards instantly.
 *   **Zero-Config Sandbox** - Safely troubleshoot maintenance issues by cloning your live site to a sandbox piggybacked onto your existing installation.
 *   **Secure Context Switching** - Intelligent session management ensures admins can move between sites securely.
@@ -44,7 +44,7 @@ WP Freighter includes a robust CLI interface for managing sites via the terminal
 # View system info, current mode, and site count
 wp freighter info
 
-# List all stacked sites
+# List all tenant sites
 wp freighter list
 
 # Update file storage mode (shared|hybrid|dedicated)
@@ -62,7 +62,7 @@ wp freighter create --title="My New Site" --name="Client A" --domain="client-a.t
 # Clone the main site to a new staging environment
 wp freighter clone main --name="Staging"
 
-# Clone a specific stacked site (ID 2) to a new site
+# Clone a specific tenant site (ID 2) to a new site
 wp freighter clone 2 --name="Dev Copy"
 
 # Generate a magic login URL for Site ID 3
@@ -76,7 +76,7 @@ wp freighter delete 4
 
 ## Developer API (`WPFreighter\Site`)
 
-You can programmatically manage stacked sites using the `WPFreighter\Site` class.
+You can programmatically manage tenant sites using the `WPFreighter\Site` class.
 
 ### Create a Site
 ```php
@@ -103,7 +103,7 @@ if ( is_wp_error( $site ) ) {
 // Clone Main Site
 $staging = \WPFreighter\Site::clone( 'main', [ 'name' => 'Staging Environment' ] );
 
-// Clone Stacked Site ID 5
+// Clone Tenant Site ID 5
 $copy = \WPFreighter\Site::clone( 5, [ 'name' => 'Copy of Site 5' ] );
 ```
 
@@ -146,7 +146,7 @@ WP Freighter works by dynamically swapping the `$table_prefix` and directory con
 
 *   **`wp-config.php` Access:** The plugin requires write access to `wp-config.php` and `wp-content/`. If your host prevents this, manual configuration is required.
 *   **Root Files:** Files in the root directory (like `robots.txt` or `.htaccess`) are shared across all sites.
-*   **Cron Jobs:** WP-Cron relies on traffic to trigger. For low-traffic stacked sites, consider setting up system cron jobs triggered via WP-CLI.
+*   **Cron Jobs:** WP-Cron relies on traffic to trigger. For low-traffic tenant sites, consider setting up system cron jobs triggered via WP-CLI.
 
 ## License
 

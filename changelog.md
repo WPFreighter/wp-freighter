@@ -5,8 +5,8 @@
 - **Bootstrap Architecture:** Introduced `wp-content/freighter.php` to handle site loading logic. This significantly reduces the footprint within `wp-config.php` to a single `require_once` line, making the configuration more robust and easier to read.
 - **Local Dependencies:** Removed reliance on external CDNs (delivr.net) for frontend assets. Vue.js, Vuetify, and Axios are now bundled locally within the plugin, improving privacy, compliance (GDPR), and offline development capabilities.
 - **Manual Configuration UI:** Added a dedicated interface for environments with strict file permissions. If the plugin cannot write to `wp-config.php` or create the bootstrap file, it now provides the exact code snippets and a "Copy to Clipboard" feature for manual installation.
-- **Session Gatekeeper:** Implemented stricter security logic for cookie-based context switching. The plugin now actively verifies that a user is authenticated or in the process of logging in before allowing access to a stacked site via cookies.
-- **"Login to Main" Button:** Added a quick-access button in the toolbar to return to the main parent site dashboard when viewing a stacked site with domain mapping enabled.
+- **Session Gatekeeper:** Implemented stricter security logic for cookie-based context switching. The plugin now actively verifies that a user is authenticated or in the process of logging in before allowing access to a tenant site via cookies.
+- **"Login to Main" Button:** Added a quick-access button in the toolbar to return to the main parent site dashboard when viewing a tenant site with domain mapping enabled.
 
 ### Changed
 - **Context Switching:** Refactored the context switching logic to force an immediate header reload when setting the `stacked_site_id` cookie. This resolves issues where the context switch would occasionally fail on the first attempt.
@@ -19,9 +19,9 @@
 ### Added
 - **Hybrid Mode:** Introduced a new "Hybrid" file mode that shares plugins and themes across all sites while keeping the `uploads` folder unique for each site. Perfect for agencies managing standardized stacks with different media libraries.
 - **WP-CLI Integration:** Added robust CLI commands (`wp freighter`) to manage sites, clone environments, toggle file modes, and handle domain mapping via the terminal.
-- **Developer API:** Introduced the `WPFreighter\Site` class, allowing developers to programmatically create, clone, login, and delete stacked sites.
+- **Developer API:** Introduced the `WPFreighter\Site` class, allowing developers to programmatically create, clone, login, and delete tenant sites.
 - **Environment Support:** Added support for the `STACKED_SITE_ID` environment variable to enable context switching in CLI and server environments.
-- **Object Cache Compatibility:** Now modifies `WP_CACHE_KEY_SALT` in `wp-config.php` to ensure unique object caching for every stacked site.
+- **Object Cache Compatibility:** Now modifies `WP_CACHE_KEY_SALT` in `wp-config.php` to ensure unique object caching for every tenant site.
 - **Storage Stats:** Added directory size calculation to the delete site dialog, providing warnings for dedicated content deletion.
 
 ### Changed
@@ -36,7 +36,7 @@
 ## **v1.2.0** - 2025-12-05
 ### Added
 - **REST API Implementation:** Completely replaced legacy `admin-ajax` calls with secure WordPress REST API endpoints (`wp-freighter/v1`) for better stability and permission handling.
-- **Clone Specific Sites:** Added functionality to clone any specific stacked site directly from the site list, not just the main site.
+- **Clone Specific Sites:** Added functionality to clone any specific tenant site directly from the site list, not just the main site.
 - **Enhanced Clone Dialog:** New UI dialog allowing users to define the Label or Domain immediately when cloning a site.
 - **Smart Defaults:** The "New Site" form now pre-fills the current user's email and username, and automatically generates a secure random password.
 - **Manifest Support:** Added `manifest.json` for standardized update checking.
@@ -89,7 +89,7 @@
 ## **v1.0.0** - 2020-09-10
 ### Added
 - Initial release of WP Freighter.
-- Ability to add or remove stacked sites with database prefix `stacked_#_`.
+- Ability to add or remove tenant sites with database prefix `stacked_#_`.
 - Clone existing site to new database prefix.
 - Add new empty site to new database prefix.
 - Domain mapping off or on.
