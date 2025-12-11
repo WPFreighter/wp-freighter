@@ -128,9 +128,10 @@ class Run {
 
         // Delegate to Site Model
         Site::delete( $site_id );
+
         // If we are deleting the site we are currently viewing, kill the session cookie
         if ( isset( $_COOKIE['stacked_site_id'] ) && $_COOKIE['stacked_site_id'] == $site_id ) {
-            $this->exit_freighter( $request );
+            return $this->exit_freighter( $request );
         }
 
         return ( new Sites )->get();

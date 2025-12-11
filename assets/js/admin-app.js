@@ -258,10 +258,18 @@ createApp({
                 'site_id': this.delete_site.id,
             } )
             .then( response => {
+                // Check for redirect URL (Magic Login)
+                if ( response.data.url ) {
+                    window.location.href = response.data.url;
+                    return;
+                }
+
+                // Fallback for deleting other sites (not the current one)
                 if ( this.delete_site.id == wpFreighterSettings.current_site_id ) {
                     location.reload();
                     return;
                 }
+
                 this.stacked_sites = response.data;
                 this.loading = false;
                 this.snackbarText = "Site deleted successfully.";
