@@ -1,5 +1,20 @@
 # Changelog
 
+## **1.5.0** - 2025-12-10
+### Added
+- **Dark Mode Support:** Added full support for dark mode. The interface now automatically respects system preferences (`prefers-color-scheme`) and includes a manual toggle in the toolbar to switch between light and dark themes.
+- **Vue 3 & Vuetify 3:** Completely upgraded the admin dashboard dependencies to Vue.js 3.5.22 and Vuetify 3.10.5. This modernization improves rendering performance and ensures long-term compatibility.
+- **Self-Healing Logic:** Implemented `Site::ensure_freighter()`, which automatically restores the plugin files and forces activation on a tenant site before context switching. This prevents errors if the plugin was manually deleted or deactivated in a child environment.
+- **New CLI Command:** Added `wp freighter regenerate`. This utility allows administrators to manually trigger a refresh of the `wp-content/freighter.php` bootstrap file and `wp-config.php` adjustments via the command line.
+
+### Changed
+- **Terminology:** Updated UI and CLI text to refer to sites as "Tenant Sites" instead of "Stacked Sites" for better clarity.
+- **UI Visuals:** Refined input fields, tables, and overlays to use transparent backgrounds, allowing the plugin interface to blend seamlessly with the native WordPress Admin color scheme.
+- **Cache Busting:** Introduced `WP_FREIGHTER_VERSION` constant to ensure admin assets are properly refreshed in browser caches immediately after an update.
+
+### Fixed
+- **Bootstrap Location:** Updated the detection logic for `freighter.php` to use `ABSPATH` instead of `WP_CONTENT_DIR`, resolving path resolution issues on specific hosting configurations.
+
 ## **1.4.0** - 2025-12-09
 ### Added
 - **Bootstrap Architecture:** Introduced `wp-content/freighter.php` to handle site loading logic. This significantly reduces the footprint within `wp-config.php` to a single `require_once` line, making the configuration more robust and easier to read.
