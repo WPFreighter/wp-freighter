@@ -125,9 +125,14 @@ body #app {
                     </v-card>
                 </v-dialog>
 
-                <v-btn icon variant="text" @click="toggleTheme" class="mr-2">
-                    <v-icon>{{ $vuetify.theme.global.name === 'dark' ? 'mdi-weather-sunny' : 'mdi-weather-night' }}</v-icon>
-                </v-btn>
+                <v-tooltip location="bottom">
+                    <template v-slot:activator="{ props }">
+                        <v-btn icon variant="text" @click="toggleTheme" class="mr-2" v-bind="props">
+                            <v-icon>{{ $vuetify.theme.global.name === 'dark' ? 'mdi-weather-sunny' : 'mdi-weather-night' }}</v-icon>
+                        </v-btn>
+                    </template>
+                    <span>Toggle theme</span>
+                </v-tooltip>
             </v-toolbar>
       
             <v-card-text>
