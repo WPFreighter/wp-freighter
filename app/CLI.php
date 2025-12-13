@@ -37,6 +37,9 @@ class CLI extends WP_CLI_Command {
         WP_CLI::line( "Main site: " . $main_site_url );
         // 5. Check for Environment Variable
         $current_env_id = getenv( 'STACKED_SITE_ID' );
+        if ( ! $current_env_id && isset( $_SERVER['STACKED_SITE_ID'] ) ) {
+            $current_env_id = $_SERVER['STACKED_SITE_ID'];
+        }
         if ( $current_env_id !== false && $current_env_id !== '' ) {
             $site_details = "{$current_env_id} (Not found)";
             foreach ( $sites as $site ) {

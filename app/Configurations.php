@@ -301,6 +301,8 @@ if ( ! empty( \$stacked_site_id ) && isset( \$_COOKIE['stacked_site_id'] ) ) {
 // CLI Support
 if ( defined( 'WP_CLI' ) && WP_CLI ) { 
     \$env_id = getenv( 'STACKED_SITE_ID' );
+    if ( ! \$env_id && isset( \$_SERVER['STACKED_SITE_ID'] ) ) { \$env_id = \$_SERVER['STACKED_SITE_ID']; }
+    if ( ! \$env_id && isset( \$_ENV['STACKED_SITE_ID'] ) ) { \$env_id = \$_ENV['STACKED_SITE_ID']; }
     if ( \$env_id ) { \$stacked_site_id = \$env_id; }
 }
 
@@ -311,6 +313,10 @@ if ( isset( \$_SERVER['HTTP_HOST'] ) && in_array( \$_SERVER['HTTP_HOST'], \$stac
         \$stacked_site_id = \$found_id;
         \$stacked_home    = \$stacked_mappings[ \$found_id ];
     }
+}
+
+if ( ! empty( \$stacked_site_id ) && empty( \$stacked_home ) && isset( \$stacked_mappings[ \$stacked_site_id ] ) ) {
+    \$stacked_home = \$stacked_mappings[ \$stacked_site_id ];
 }
 
 // 3. Apply Configuration Logic
