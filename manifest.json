@@ -10,7 +10,7 @@
 	"tested" : "6.9",
 	"requires_php" : "7.0",
     "added" : "2020-09-10 02:10:00",
-	"last_updated" : "2025-12-10 10:00:00",
+	"last_updated" : "2025-12-13 10:00:00",
     "homepage" : "https://wpfreighter.com",
 	"sections" : {
 		"description" : "Multi-tenant mode for WordPress.",
