@@ -1,5 +1,9 @@
 # Changelog
 
+## **1.5.1** - 2025-12-13
+### Fixed
+- **WP CLI:** Fixed issue with detecting domain mapping
+
 ## **1.5.0** - 2025-12-10
 ### Added
 - **Dark Mode Support:** Added full support for dark mode. The interface now automatically respects system preferences (`prefers-color-scheme`) and includes a manual toggle in the toolbar to switch between light and dark themes.
