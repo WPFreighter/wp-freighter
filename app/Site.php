@@ -156,32 +156,9 @@ class Site {
             // Fix Permissions (Copy roles from main site)
             $wpdb->query( "UPDATE {$new_table_prefix}options set `option_name` = 'stacked_{$site_id}_user_roles' WHERE `option_name` = '{$primary_prefix}user_roles'" );
             
-            // Install Default Theme if Dedicated
-            if ( $files_mode == "dedicated" ) {
-                $default_theme_path = ABSPATH . "content/$site_id/themes/" . WP_DEFAULT_THEME ."/";
-                
-                if ( ! file_exists( $default_theme_path ) ) {
-                    include_once ABSPATH . 'wp-admin/includes/theme.php';
-                    
-                    // Prevent updates during install
-                    remove_action( 'upgrader_process_complete', [ 'Language_Pack_Upgrader', 'async_upgrade' ], 20 );
-                    remove_action( 'upgrader_process_complete', 'wp_version_check', 10 );
-                    remove_action( 'upgrader_process_complete', 'wp_update_plugins', 10 );
-                    remove_action( 'upgrader_process_complete', 'wp_update_themes', 10 );
-                    $skin     = self::get_silent_skin();
-                    $upgrader = new \Theme_Upgrader( $skin );
-                    $api = themes_api( 'theme_information', [ 'slug'  => WP_DEFAULT_THEME, 'fields' => [ 'sections' => false ] ] );
-                    if ( ! is_wp_error( $api ) ) {
-                        $upgrader->run( [
-                            'package'           => $api->download_link,
-                            'destination'       => $default_theme_path,
-                            'clear_destination' => false,
-                            'clear_working'     => true,
-                            'hook_extra'        => [ 'type' => 'theme', 'action' => 'install' ],
-                        ] );
-                    }
-                }
-            }
+            // Give the site a theme it can actually load. wp_install() records WP_DEFAULT_THEME
+            // whether or not it exists in the theme root this site will use.
+            self::ensure_theme( $site_id, $files_mode, $primary_prefix );
 
         } catch ( \Exception $e ) {
             return new \WP_Error( 'install_failed', $e->getMessage() );
@@ -437,6 +414,101 @@ add_filter( 'auto_plugin_update_send_email', '__return_false' );
 add_filter( 'auto_theme_update_send_email', '__return_false' );
 EOD;
             file_put_contents( $mu_file, $plugin_content );
+        }
+    }
+
+    /**
+     * Make sure a freshly installed site points at a theme that exists in its theme root.
+     *
+     * Shared and hybrid sites read the host's themes folder, which may not carry WP_DEFAULT_THEME
+     * (pruned installs, managed hosts). Fall back to the main site's active theme, then to any theme
+     * present. Dedicated sites start with an empty content/<id>/themes/: download WP_DEFAULT_THEME,
+     * and if that fails (offline, wp.org unreachable) copy the main site's active theme in.
+     *
+     * Runs with $table_prefix already switched to the new site, so get_option() reads its options.
+     */
+    private static function ensure_theme( $site_id, $files_mode, $primary_prefix ) {
+        global $wpdb;
+
+        $dedicated  = 'dedicated' === $files_mode;
+        $theme_root = $dedicated ? ABSPATH . "content/$site_id/themes" : get_theme_root();
+        $has        = function ( $slug ) use ( $theme_root ) {
+            return $slug && file_exists( "$theme_root/$slug/style.css" );
+        };
+
+        if ( $has( get_option( 'stylesheet' ) ) && $has( get_option( 'template' ) ) ) {
+            return;
+        }
+
+        $main = [];
+        foreach ( [ 'template', 'stylesheet' ] as $key ) {
+            $main[ $key ] = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$primary_prefix}options WHERE option_name = %s", $key ) );
+        }
+
+        if ( $dedicated ) {
+            self::install_default_theme( $theme_root );
+            if ( ! $has( WP_DEFAULT_THEME ) ) {
+                // Offline fallback: bring the main site's theme (and its parent) into the dedicated folder.
+                require_once ABSPATH . 'wp-admin/includes/file.php';
+                \WP_Filesystem();
+                $main_root = get_theme_root();
+                foreach ( array_unique( array_filter( $main ) ) as $slug ) {
+                    if ( file_exists( "$main_root/$slug/style.css" ) && ! file_exists( "$theme_root/$slug" ) ) {
+                        wp_mkdir_p( "$theme_root/$slug" );
+                        copy_dir( "$main_root/$slug", "$theme_root/$slug" );
+                    }
+                }
+            }
+        }
+
+        if ( $has( WP_DEFAULT_THEME ) ) {
+            $pick = [ 'template' => WP_DEFAULT_THEME, 'stylesheet' => WP_DEFAULT_THEME ];
+        } elseif ( $has( $main['stylesheet'] ) && $has( $main['template'] ) ) {
+            $pick = $main;
+        } else {
+            $pick = null;
+            foreach ( glob( "$theme_root/*/style.css" ) ?: [] as $css ) {
+                $theme = wp_get_theme( basename( dirname( $css ) ), $theme_root );
+                if ( $theme->exists() && $has( $theme->get_template() ) ) {
+                    $pick = [ 'template' => $theme->get_template(), 'stylesheet' => $theme->get_stylesheet() ];
+                    break;
+                }
+            }
+        }
+
+        if ( $pick ) {
+            update_option( 'template', $pick['template'] );
+            update_option( 'stylesheet', $pick['stylesheet'] );
+            update_option( 'current_theme', wp_get_theme( $pick['stylesheet'], $theme_root )->get( 'Name' ) );
+        }
+    }
+
+    /**
+     * Download WP_DEFAULT_THEME into a theme root (dedicated sites). Silent; a failure leaves the folder empty.
+     */
+    private static function install_default_theme( $theme_root ) {
+        $destination = "$theme_root/" . WP_DEFAULT_THEME . '/';
+        if ( file_exists( $destination ) ) {
+            return;
+        }
+        include_once ABSPATH . 'wp-admin/includes/theme.php';
+
+        // Prevent updates during install
+        remove_action( 'upgrader_process_complete', [ 'Language_Pack_Upgrader', 'async_upgrade' ], 20 );
+        remove_action( 'upgrader_process_complete', 'wp_version_check', 10 );
+        remove_action( 'upgrader_process_complete', 'wp_update_plugins', 10 );
+        remove_action( 'upgrader_process_complete', 'wp_update_themes', 10 );
+        $skin     = self::get_silent_skin();
+        $upgrader = new \Theme_Upgrader( $skin );
+        $api      = themes_api( 'theme_information', [ 'slug' => WP_DEFAULT_THEME, 'fields' => [ 'sections' => false ] ] );
+        if ( ! is_wp_error( $api ) ) {
+            $upgrader->run( [
+                'package'           => $api->download_link,
+                'destination'       => $destination,
+                'clear_destination' => false,
+                'clear_working'     => true,
+                'hook_extra'        => [ 'type' => 'theme', 'action' => 'install' ],
+            ] );
         }
     }
 
