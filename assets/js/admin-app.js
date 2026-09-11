@@ -96,7 +96,7 @@
 		el.sitesHint.textContent = on ? 'Domains take effect after you save. Point DNS and your host at this install first.' : 'Labels are yours to change; click one to edit.';
 
 		var fileCol = c.files === 'dedicated' ? 'Files' : c.files === 'hybrid' ? 'Uploads' : '';
-		el.thead.innerHTML = '<th class="wpf-id">ID</th><th>' + (on ? 'Domain' : 'Label') + '</th>' + (fileCol ? '<th>' + fileCol + '</th>' : '') + '<th>Created</th><th></th>';
+		el.thead.innerHTML = '<th class="wpf-id">ID</th><th>' + (on ? 'Domain' : 'Label') + '</th>' + (fileCol ? '<th class="wpf-path">' + fileCol + '</th>' : '') + '<th class="wpf-date">Created</th><th></th>';
 
 		el.rows.innerHTML = state.sites.map(function (s) {
 			var id = s.stacked_site_id, cur = String(id) === state.currentId;
