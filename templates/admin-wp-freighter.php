@@ -1,397 +1,142 @@
-<style>
-[v-cloak] > * {
-    display:none;
+<?php
+/**
+ * Tools → WP Freighter. Shell markup; rows, notices and dialogs are filled by assets/js/admin-app.js
+ * from the localized wpFreighterSettings object. No framework.
+ */
+if ( ! defined( 'WPINC' ) ) {
+	die;
 }
-[v-cloak]::before {
-    display: block;
-    position: relative;
-    left: 0%;
-    top: 0%;
-    max-width: 1000px;
-    margin:auto;
-    padding-bottom: 10em;
-}
-body #app {
-    line-height: initial;
-}
+?>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+	<defs>
+		<symbol id="wpf-mark" viewBox="0 60 620 510">
+			<path d="M115 71 H137 V267 H246 V437 H83 V267 H115 Z" fill="var(--wpf-cabin)" stroke="var(--wpf-cabin-line)" stroke-width="3" stroke-linejoin="round"/>
+			<rect x="116" y="302" width="91" height="25" fill="#FF4F00"/>
+			<path d="M138 143 H232 L216 177 L232 210 H138 Z" fill="#D90C1A"/>
+			<rect x="299" y="225" width="76" height="73" fill="#FFB900"/><rect x="376" y="225" width="76" height="73" fill="#D90C1A"/><rect x="454" y="225" width="76" height="73" fill="#B1D8A9"/>
+			<rect x="299" y="299" width="76" height="72" fill="#FE4E00"/><rect x="376" y="299" width="76" height="72" fill="#B1D8A9"/><rect x="454" y="299" width="76" height="72" fill="#6AB221"/><rect x="530" y="299" width="76" height="72" fill="#D90C1A"/>
+			<rect x="299" y="371" width="76" height="65" fill="#D90C1A"/><rect x="376" y="371" width="76" height="65" fill="#FFB900"/><rect x="454" y="371" width="76" height="65" fill="#D90C1A"/><rect x="530" y="371" width="76" height="65" fill="#FE4E00"/>
+			<path d="M16 435 H604 a123 123 0 0 1 -123 123 H139 A123 123 0 0 1 16 435 Z" fill="var(--wpf-hull)"/>
+		</symbol>
+	</defs>
+</svg>
 
-/* --- VISUAL RESTORATION OVERRIDES --- */
+<div id="wpf" class="wpf" hidden>
+	<div class="wpf-progress" id="wpf-progress" aria-hidden="true"></div>
 
-/* Force Vuetify app wrapper to be transparent so WP Admin background shows */
-.v-application {
-    background: transparent !important;
-}
+	<header class="wpf-head">
+		<div class="wpf-brand">
+			<svg class="wpf-mark" aria-hidden="true"><use href="#wpf-mark"/></svg>
+			<div>
+				<h1>WP Freighter</h1>
+				<p class="wpf-status" id="wpf-status"></p>
+			</div>
+		</div>
+		<div class="wpf-head-actions">
+			<button type="button" class="wpf-btn" data-action="login-main" id="wpf-login-main" hidden>Log in to main site</button>
+			<button type="button" class="wpf-btn" data-action="clone-main">Clone main site</button>
+			<button type="button" class="wpf-btn wpf-btn-primary" data-action="new">New tenant site</button>
+			<div class="wpf-theme-wrap">
+				<button type="button" class="wpf-btn wpf-btn-icon" id="wpf-theme" aria-label="Toggle light and dark. Right-click for system." aria-haspopup="menu" aria-expanded="false">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor" stroke="none"/></svg>
+				</button>
+				<div class="wpf-menu" id="wpf-theme-menu" role="menu" hidden>
+					<button type="button" role="menuitemradio" data-theme-pick="light">Light</button>
+					<button type="button" role="menuitemradio" data-theme-pick="dark">Dark</button>
+					<button type="button" role="menuitemradio" data-theme-pick="system">System</button>
+				</div>
+			</div>
+		</div>
+	</header>
 
-/* Tighten up table inputs to match V2 look */
-.v-data-table .v-field__input, .v-input input, .v-input input:focus, .v-field__append-inner, .v-field.v-field--variant-underlined .v-field__append-inner {
-    padding: 0px;
-}
-.v-data-table .v-input__details {
-    display: none !important;
-}
+	<div id="wpf-notices"></div>
 
-/* Restore button icon sizing */
-.v-data-table .v-btn--icon.v-btn--density-default {
-    width: 28px;
-    height: 28px;
-}
-.v-text-field input, .v-text-field input:focus {
-    border: 0px;
-    box-shadow: none;
-}
-.v-field--variant-plain .v-label.v-field-label, .v-field--variant-underlined .v-label.v-field-label {
-    top: 4px;
-}
-#app input[type="text"], 
-#app input[type="email"], 
-#app input[type="password"],
-.v-data-table .v-field__input, .v-input input {
-    background-color: transparent !important;
-    color: inherit !important;
-    box-shadow: none !important;
-}
-</style>
+	<section class="wpf-section">
+		<div class="wpf-section-head">
+			<h2>Tenant sites <span class="wpf-count" id="wpf-count"></span></h2>
+			<p class="wpf-hint" id="wpf-sites-hint"></p>
+		</div>
+		<div class="wpf-table-wrap">
+			<table class="wpf-table" id="wpf-table">
+				<thead><tr id="wpf-thead"></tr></thead>
+				<tbody id="wpf-rows"></tbody>
+			</table>
+			<p class="wpf-empty" id="wpf-empty" hidden>No tenant sites yet. Clone the main site or create an empty one.</p>
+		</div>
+	</section>
 
-<div id="app" v-cloak>
-    <v-app class="bg-transparent">
-      <v-main>
-      <v-container fluid class="pa-0">
-        <v-row>
-        <v-col cols="12" class="mt-5 pr-8">
-            <v-card rounded="0">
-            
-            <v-overlay v-model="loading" class="align-center justify-center" z-index="5">
-                <v-progress-circular size="64" color="primary" indeterminate></v-progress-circular>
-            </v-overlay>
+	<section class="wpf-section wpf-settings">
+		<div class="wpf-setting">
+			<h2>Files</h2>
+			<p class="wpf-hint">How much of <code>wp-content</code> tenants share. Changing mode does not move existing files.</p>
+			<div class="wpf-choices" role="radiogroup" aria-label="Files mode">
+				<label class="wpf-choice"><input type="radio" name="files" value="shared"><span><b>Shared</b>One <code>wp-content/</code> for every site: plugins, themes and uploads.</span></label>
+				<label class="wpf-choice"><input type="radio" name="files" value="hybrid"><span><b>Hybrid</b>Shared plugins and themes; each site's uploads in <code>content/&lt;id&gt;/uploads/</code>.</span></label>
+				<label class="wpf-choice"><input type="radio" name="files" value="dedicated"><span><b>Dedicated</b>A whole <code>content/&lt;id&gt;/</code> per site: its own plugins, themes and uploads.</span></label>
+			</div>
+		</div>
+		<div class="wpf-setting">
+			<h2>Domain mapping</h2>
+			<p class="wpf-hint">How tenants are reached. Mapped domains still need DNS and the host pointed at this install.</p>
+			<div class="wpf-choices" role="radiogroup" aria-label="Domain mapping">
+				<label class="wpf-choice"><input type="radio" name="domain_mapping" value="off"><span><b>Off</b>Tenants ride on this site's domain. Reach them through the switcher or a magic login.</span></label>
+				<label class="wpf-choice"><input type="radio" name="domain_mapping" value="on"><span><b>On</b>Each tenant answers on its own hostname. Set it in the table above.</span></label>
+			</div>
+		</div>
+	</section>
 
-            <v-toolbar flat color="surface">
-                <v-toolbar-title class="font-weight-bold">WP Freighter</v-toolbar-title>
-                <v-spacer></v-spacer>
-                <v-btn v-if="configurations.domain_mapping == 'on' && current_site_id != ''" color="secondary" variant="flat" class="mr-2 mt-1" size="small" @click="loginToMain()">
-                    <v-icon start>mdi-login-variant</v-icon> <span class="d-none d-sm-inline">Login to main site</span>
-                </v-btn>
-                <v-btn color="secondary" variant="flat" class="mr-2" size="small" @click="openCloneMainDialog()">
-                    <v-icon start>mdi-content-copy</v-icon> <span class="d-none d-sm-inline">Clone main site</span>
-                </v-btn>
-                <v-dialog v-model="new_site.show" persistent max-width="600px" :transition="false">
-                    <template v-slot:activator="{ props }">
-                        <v-btn variant="flat" color="secondary" class="mr-1" size="small" v-bind="props">
-                            <v-icon start>mdi-plus</v-icon> <span class="d-none d-sm-inline">Add new empty site</span>
-                        </v-btn>
-                    </template>
-                    <v-card>
-                        <v-card-title>New Site</v-card-title>
-                        <v-card-text>
-                        <v-form ref="form" v-model="new_site.valid">
-                        <v-container>
-                            <v-row>
-                            <v-col cols="12" sm="6" md="6" v-show="configurations.domain_mapping == 'off'">
-                                <v-text-field v-model="new_site.name" label="Label" variant="underlined"></v-text-field>
-                            </v-col>
-                            <v-col cols="12" sm="6" md="6" v-show="configurations.domain_mapping == 'on'">
-                                <v-text-field v-model="new_site.domain" label="Domain" variant="underlined"></v-text-field>
-                            </v-col>
-                            <v-col cols="12" sm="6" md="6">
-                                <v-text-field v-model="new_site.title" label="Title*" :rules="[ value => !!value || 'Required.' ]" variant="underlined"></v-text-field>
-                            </v-col>
-                            <v-col cols="12" sm="6" md="6">
-                                <v-text-field v-model="new_site.email" label="Email*" :rules="[ value => !!value || 'Required.' ]" variant="underlined"></v-text-field>
-                            </v-col>
-                            <v-col cols="12" sm="6" md="6">
-                                <v-text-field v-model="new_site.username" label="Username*" :rules="[ value => !!value || 'Required.' ]" variant="underlined"></v-text-field>
-                            </v-col>
-                            <v-col cols="12" sm="6" md="6">
-                                <v-text-field 
-                                    v-model="new_site.password" 
-                                    label="Password*" 
-                                    type="text" 
-                                    append-inner-icon="mdi-refresh"
-                                    @click:append-inner="new_site.password = generatePassword()"
-                                    hide-details
-                                    :rules="[ value => !!value || 'Required.' ]"
-                                    variant="underlined"
-                                ></v-text-field>
-                            </v-col>
-                            </v-row>
-                        </v-container>
-                        <small class="text-caption">*indicates required field</small>
-                        </v-form>
-                        </v-card-text>
-                        <v-card-actions>
-                            <v-spacer></v-spacer>
-                            <v-btn color="primary" variant="text" @click="new_site.show = false">Close</v-btn>
-                            <v-btn color="primary" variant="text" @click="newSite()">Create new site</v-btn>
-                        </v-card-actions>
-                    </v-card>
-                </v-dialog>
+	<div class="wpf-savebar" id="wpf-savebar" hidden>
+		<span id="wpf-savebar-text">Unsaved changes</span>
+		<button type="button" class="wpf-btn" data-action="discard">Discard</button>
+		<button type="button" class="wpf-btn wpf-btn-primary" data-action="save">Save changes</button>
+	</div>
 
-                <v-tooltip location="bottom">
-                    <template v-slot:activator="{ props }">
-                        <v-btn icon variant="text" @click="toggleTheme" class="mr-2" v-bind="props">
-                            <v-icon>{{ $vuetify.theme.global.name === 'dark' ? 'mdi-weather-sunny' : 'mdi-weather-night' }}</v-icon>
-                        </v-btn>
-                    </template>
-                    <span>Toggle theme</span>
-                </v-tooltip>
-            </v-toolbar>
-      
-            <v-card-text>
-                <v-alert type="error" variant="outlined" v-if="configurations.errors && configurations.errors.manual_bootstrap_required">
-                    <h3 class="text-h6 mb-2">Permission Error: Unable to create bootstrap file</h3>
-                    <p>WP Freighter cannot write to your <code>wp-content</code> directory. You must manually create this file to enable your tenant sites.</p>
-                    <p class="mt-2"><strong>1. Create a new file:</strong><br><code>/wp-content/freighter.php</code></p>
-                    <p><strong>2. Paste the following code into it:</strong></p>
-                    <v-textarea variant="outlined" readonly :model-value="configurations.errors.manual_bootstrap_required" height="300px" class="mt-2" style="font-family: monospace; font-size: 12px;"></v-textarea>
-                    <v-row class="mt-2">
-                        <v-col>
-                            <v-btn color="error" @click="saveConfigurations()">
-                                <v-icon start>mdi-refresh</v-icon> I have created the file
-                            </v-btn>
-                        </v-col>
-                        <v-col class="text-right">
-                            <v-btn variant="text" size="small" @click="copyToClipboard(configurations.errors.manual_bootstrap_required)">Copy to Clipboard</v-btn>
-                        </v-col>
-                    </v-row>
-                </v-alert>
+	<dialog class="wpf-dialog" id="wpf-dialog-new">
+		<form method="dialog" id="wpf-form-new">
+			<h2>New tenant site</h2>
+			<p class="wpf-hint">Only database tables are created, so this takes a few seconds.</p>
+			<div class="wpf-fields">
+				<label data-mode="off"><span>Label</span><input type="text" name="name" placeholder="Staging"></label>
+				<label data-mode="on"><span>Domain</span><input type="text" name="domain" placeholder="example.com"></label>
+				<label><span>Site title</span><input type="text" name="title" required></label>
+				<label><span>Admin email</span><input type="email" name="email" required></label>
+				<label><span>Admin username</span><input type="text" name="username" required autocomplete="off"></label>
+				<label><span>Admin password</span><span class="wpf-input-row"><input type="text" name="password" required autocomplete="off" spellcheck="false"><button type="button" class="wpf-btn wpf-btn-small" data-action="regen-password">Regenerate</button></span></label>
+			</div>
+			<div class="wpf-dialog-actions">
+				<button type="button" class="wpf-btn" data-action="close">Cancel</button>
+				<button type="submit" class="wpf-btn wpf-btn-primary">Create site</button>
+			</div>
+		</form>
+	</dialog>
 
-                <v-alert type="warning" variant="outlined" v-if="configurations.errors && !configurations.errors.manual_bootstrap_required && configurations.errors.manual_config_required">
-                    <h3 class="text-h6 mb-2">Setup Required: Update wp-config.php</h3>
-                    <p>WP Freighter cannot write to your <code>wp-config.php</code> file. Please add the following snippet manually.</p>
-                    <p class="mt-2">Place this code directly <strong>after</strong> the line: <code>$table_prefix = 'wp_';</code></p>
-                    <v-card class="my-3 grey-lighten-4" variant="outlined">
-                        <v-card-text style="font-family: monospace;">
-                            <div v-for="line in configurations.errors.manual_config_required">{{ line }}</div>
-                        </v-card-text>
-                    </v-card>
-                    <v-btn color="warning" @click="saveConfigurations()">
-                        <v-icon start>mdi-check</v-icon> I have updated wp-config.php
-                    </v-btn>
-                </v-alert>
+	<dialog class="wpf-dialog" id="wpf-dialog-clone">
+		<form method="dialog" id="wpf-form-clone">
+			<h2>Clone <span id="wpf-clone-source"></span></h2>
+			<p class="wpf-hint">Tables are copied to a new prefix; in hybrid and dedicated mode the content folder is copied too.</p>
+			<div class="wpf-fields">
+				<label data-mode="off"><span>Label for the copy</span><input type="text" name="name"></label>
+				<label data-mode="on"><span>Domain for the copy</span><input type="text" name="domain" placeholder="example.com"></label>
+			</div>
+			<div class="wpf-dialog-actions">
+				<button type="button" class="wpf-btn" data-action="close">Cancel</button>
+				<button type="submit" class="wpf-btn wpf-btn-primary">Clone</button>
+			</div>
+		</form>
+	</dialog>
 
-                <div class="text-subtitle text-medium-emphasis mb-2 ml-2">Tenant Sites</div>
+	<dialog class="wpf-dialog" id="wpf-dialog-delete">
+		<form method="dialog" id="wpf-form-delete">
+			<h2>Delete <span id="wpf-delete-name"></span>?</h2>
+			<p class="wpf-hint">Its database tables are dropped. There is no undo.</p>
+			<p class="wpf-delete-files" id="wpf-delete-files" hidden></p>
+			<div class="wpf-dialog-actions">
+				<button type="button" class="wpf-btn" data-action="close">Cancel</button>
+				<button type="submit" class="wpf-btn wpf-btn-danger">Delete permanently</button>
+			</div>
+		</form>
+	</dialog>
 
-                <v-data-table
-                    :headers="headers"
-                    :items="stacked_sites"
-                    :items-per-page="-1"
-                    hide-default-footer
-                >
-                <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
-                    <tr>
-                        <th></th>
-                        <th class="cursor-pointer font-weight-bold" @click="toggleSort(columns.find(c => c.key === 'id'))">
-                            ID
-                            <v-icon v-if="isSorted(columns.find(c => c.key === 'id'))" :icon="getSortIcon(columns.find(c => c.key === 'id'))"></v-icon>
-                        </th>
-                        <th v-show="configurations.domain_mapping == 'off'" class="cursor-pointer font-weight-bold" @click="toggleSort(columns.find(c => c.key === 'name'))">
-                            Label
-                            <v-icon v-if="isSorted(columns.find(c => c.key === 'name'))" :icon="getSortIcon(columns.find(c => c.key === 'name'))"></v-icon>
-                        </th>
-                        <th v-show="configurations.domain_mapping == 'on'" class="cursor-pointer font-weight-bold" @click="toggleSort(columns.find(c => c.key === 'domain'))">
-                            Domain Mapping
-                            <v-icon v-if="isSorted(columns.find(c => c.key === 'domain'))" :icon="getSortIcon(columns.find(c => c.key === 'domain'))"></v-icon>
-                        </th>
-                        
-                        <th v-if="configurations.files == 'dedicated'" class="font-weight-bold d-none d-md-table-cell">Files</th>
-                        <th v-if="configurations.files == 'hybrid'" class="font-weight-bold d-none d-md-table-cell">Uploads</th>
-                        <th class="cursor-pointer font-weight-bold d-none d-md-table-cell" @click="toggleSort(columns.find(c => c.key === 'created_at'))">
-                            Created At
-                            <v-icon v-if="isSorted(columns.find(c => c.key === 'created_at'))" :icon="getSortIcon(columns.find(c => c.key === 'created_at'))"></v-icon>
-                        </th>
-                        <th></th>
-                    </tr>
-                </template>
-                <template v-slot:item="{ item }">
-                    <tr>
-                        <td width="122px" class="pa-2">
-                            <v-btn v-if="configurations.domain_mapping == 'off'" size="small" color="primary" class="text-white" elevation="0" @click="switchTo( item.stacked_site_id )">Switch To</v-btn>
-                            <v-btn v-else color="primary" :href="`//${item.domain}`" size="small" target="_new" variant="flat" class="text-white">
-                                <v-icon size="small" start>mdi-open-in-new</v-icon> Open
-                            </v-btn>
-                        </td>
-                        <td width="58px" class="text-caption">
-                            <code>{{ item.stacked_site_id }}</code>
-                        </td>
-                        <td v-if="configurations.domain_mapping == 'off'">
-                            <v-text-field v-model="item.name" density="compact" hide-details variant="underlined" hide-details color="primary" @input="changeForm()"></v-text-field>
-                        </td>
-                        <td v-if="configurations.domain_mapping == 'on'">
-                            <v-text-field v-model="item.domain" density="compact" hide-details variant="underlined" hide-details color="primary" @input="changeForm()"></v-text-field>
-                        </td>
- 
-                        <td width="160px" class="d-none d-md-table-cell" v-if="configurations.files == 'dedicated'">
-                            <code>/content/{{ item.stacked_site_id }}/</code>
-                        </td>
-                        <td width="200px" class="d-none d-md-table-cell" v-if="configurations.files == 'hybrid'">
-                            <code>/content/{{ item.stacked_site_id }}/uploads/</code>
-                        </td>
-                        <td width="235px" class="d-none d-md-table-cell">{{ pretty_timestamp( item.created_at ) }}</td>
-        
-                        <td width="150px" class="text-right">
-                            <v-tooltip location="bottom" v-if="configurations.domain_mapping == 'on'">
-                                <template v-slot:activator="{ props }">
-                                    <v-btn icon="mdi-login-variant" variant="text" color="grey-darken-1" @click="autoLogin( item )" v-bind="props"></v-btn>
-                                </template>
-                                <span>Magic Autologin</span>
-                            </v-tooltip>
-
-                            <v-tooltip location="bottom">
-                                <template v-slot:activator="{ props }">
-                                    <v-btn icon="mdi-content-copy" variant="text" color="grey-darken-1" @click="openCloneDialog( item )" v-bind="props"></v-btn>
-                                </template>
-                                <span>Clone site</span>
-                            </v-tooltip>
-
-                            <v-tooltip location="bottom">
-                                <template v-slot:activator="{ props }">
-                                    <v-btn icon="mdi-delete" variant="text" color="grey-darken-1" @click="deleteSite( item.stacked_site_id )" v-bind="props"></v-btn>
-                                </template>
-                                <span>Delete site</span>
-                            </v-tooltip>
-                        </td>
-                    </tr>
-                </template>
-                <template v-slot:no-data>
-                    <div class="text-center grey--text pa-4">
-                        You have no tenant sites.
-                    </div>
-                </template>
-                </v-data-table>
-
-                <div class="text-subtitle-2 text-medium-emphasis mt-6 mb-2" id="files">Files</div>
-                <v-radio-group v-model="configurations.files" @change="changeForm()" density="compact">
-                    <v-row dense>
-                        <v-col cols="12" sm="3" md="2">
-                            <v-radio value="shared" color="primary">
-                                <template v-slot:label><strong class="text-body-1 text-high-emphasis">Shared</strong></template>
-                            </v-radio>
-                        </v-col>
-                        <v-col cols="12" sm="9" md="10" class="d-flex align-center text-body-2 pt-0 pt-sm-3">
-                            <div>Single <code class="mx-1">/wp-content/</code> folder. Any file changes to plugins, themes and uploads will affect all sites.</div>
-                        </v-col>
-                    </v-row>
-                    <v-row dense>
-                        <v-col cols="12" sm="3" md="2">
-                            <v-radio value="hybrid" color="primary">
-                                <template v-slot:label><strong class="text-body-1 text-high-emphasis">Hybrid</strong></template>
-                            </v-radio>
-                        </v-col>
-                        <v-col cols="12" sm="9" md="10" class="d-flex align-center text-body-2 pt-0 pt-sm-3">
-                             <div>Shared <code class="mx-1">plugins</code> and <code class="mx-1">themes</code>, but unique <code class="mx-1">uploads</code> folder stored under <code class="mx-1">/content/(site-id)/uploads/</code>.</div>
-                        </v-col>
-                    </v-row>
-                    <v-row dense>
-                        <v-col cols="12" sm="3" md="2">
-                            <v-radio value="dedicated" color="primary">
-                                <template v-slot:label><strong class="text-body-1 text-high-emphasis">Dedicated</strong></template>
-                            </v-radio>
-                        </v-col>
-                        <v-col cols="12" sm="9" md="10" class="d-flex align-center text-body-2 pt-0 pt-sm-3">
-                            <div>Each site will have its unique <code class="mx-1">/wp-content/</code> folder stored under <code class="mx-1">/content/(site-id)/</code>.</div>
-                        </v-col>
-                    </v-row>
-                </v-radio-group>
-
-                <div class="text-subtitle-2 text-medium-emphasis mt-4 mb-2" id="domain-mapping">Domain Mapping</div>
-                <v-radio-group v-model="configurations.domain_mapping" @change="changeForm()" density="compact">
-                    <v-row dense>
-                        <v-col cols="12" sm="3" md="2">
-                            <v-radio value="off" color="primary">
-                                <template v-slot:label><strong class="text-body-1 text-high-emphasis">Off</strong></template>
-                            </v-radio>
-                        </v-col>
-                        <v-col cols="12" sm="9" md="10" class="d-flex align-center text-body-2 pt-0 pt-sm-3">
-                            <div>Easy option - Only logged in users can view tenant sites. Each site will share existing URL and SSL.</div>
-                        </v-col>
-                    </v-row>
-                    <v-row dense>
-                        <v-col cols="12" sm="3" md="2">
-                            <v-radio value="on" color="primary">
-                                <template v-slot:label><strong class="text-body-1 text-high-emphasis">On</strong></template>
-                            </v-radio>
-                        </v-col>
-                        <v-col cols="12" sm="9" md="10" class="d-flex align-center text-body-2 pt-0 pt-sm-3">
-                            <div>Manual setup - DNS updates, domain mapping and SSL installation need to completed with your host provider.</div>
-                        </v-col>
-                    </v-row>
-                </v-radio-group>
-
-                <div class="mt-6">
-                    <v-btn color="primary" class="text-white" elevation="0" @click="saveConfigurations()">Save Configurations</v-btn> 
-                    <v-chip class="mx-3" v-if="pending_changes" color="warning" label size="small">Unsaved configurations pending</v-chip>
-                    {{ response }}
-                </div>
-            </v-card-text>
-            </v-card>
-        </v-col>
-        </v-row>
-      </v-container>
-
-      <v-dialog v-model="clone_site.show" persistent max-width="600px" :transition="false">
-            <v-card>
-                <v-card-title>Clone Site</v-card-title>
-                <v-card-text>
-                    <v-form ref="clone_form" v-model="clone_site.valid">
-                        <v-container>
-                            <v-row>
-                                <v-col cols="12">
-                                     <p>You are about to clone <strong>{{ clone_site.source_name }}</strong>.</p>
-                                </v-col>
-                                <v-col cols="12" v-if="configurations.domain_mapping == 'off'">
-                                    <v-text-field 
-                                        v-model="clone_site.name" 
-                                        label="New Site Label"
-                                        hint="Enter a name for the cloned site"
-                                        variant="underlined"
-                                        persistent-hint
-                                    ></v-text-field>
-                                </v-col>
-                                <v-col cols="12" v-if="configurations.domain_mapping == 'on'">
-                                    <v-text-field 
-                                        v-model="clone_site.domain" 
-                                        label="New Domain" 
-                                        placeholder="example.com"
-                                        hint="Enter the domain for the cloned site"
-                                        variant="underlined"
-                                        persistent-hint
-                                    ></v-text-field>
-                                </v-col>
-                            </v-row>
-                        </v-container>
-                    </v-form>
-                </v-card-text>
-                <v-card-actions>
-                    <v-spacer></v-spacer>
-                    <v-btn color="grey" variant="text" @click="clone_site.show = false">Cancel</v-btn>
-                    <v-btn color="primary" variant="text" @click="processClone()">Confirm Clone</v-btn>
-                </v-card-actions>
-            </v-card>
-        </v-dialog>
-
-        <v-dialog v-model="delete_site.show" persistent max-width="500px" :transition="false">
-            <v-card>
-                <v-card-title class="text-h5">Delete Site?</v-card-title>
-                <v-card-text>
-                    <p>Are you sure you want to delete this site? This action cannot be undone.</p>
-                    
-                    <v-alert v-if="delete_site.has_dedicated_content" color="primary" density="compact" variant="text" icon="mdi-folder-alert" class="mt-3">
-                        <strong>Dedicated Content Folder Detected</strong><br/>
-                        The following directory and its contents will be permanently deleted:
-                        <div class="mt-2 mb-1"><code style="font-size:11px">{{ delete_site.path }}</code></div>
-                        <div>Estimated Storage: <strong>{{ delete_site.size }}</strong></div>
-                    </v-alert>
-                </v-card-text>
-                <v-card-actions>
-                    <v-spacer></v-spacer>
-                    <v-btn color="grey" variant="text" @click="delete_site.show = false">Cancel</v-btn>
-                    <v-btn color="error" variant="text" @click="confirmDelete()">Permanently Delete</v-btn>
-                </v-card-actions>
-            </v-card>
-        </v-dialog>
-
-        <v-snackbar v-model="snackbar" :timeout="2000" color="primary" location="bottom right">
-            {{ snackbarText }}
-        </v-snackbar>
-      </v-main>
-    </v-app>
-  </div>
+	<div class="wpf-toast" id="wpf-toast" role="status" aria-live="polite" hidden></div>
+</div>
+<noscript><div class="notice notice-error"><p>WP Freighter's settings page needs JavaScript.</p></div></noscript>

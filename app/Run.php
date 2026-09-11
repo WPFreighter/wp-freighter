@@ -294,19 +294,10 @@ class Run {
             return;
         }
 
-        // Define the root URL for the plugin assets
         $plugin_url = plugin_dir_url( dirname( __DIR__ ) . '/wp-freighter.php' );
-        // 1. Enqueue Local CSS
-        wp_enqueue_style( 'vuetify', $plugin_url . 'assets/css/vuetify.min.css', [], '3.10.5' );
-        wp_enqueue_style( 'mdi', $plugin_url . 'assets/css/materialdesignicons.min.css', [], '7.4.47' );
+        wp_enqueue_style( 'wp-freighter-admin', $plugin_url . 'assets/css/admin.css', [], WP_FREIGHTER_VERSION );
+        wp_enqueue_script( 'wp-freighter-app', $plugin_url . 'assets/js/admin-app.js', [], WP_FREIGHTER_VERSION, true );
 
-        // 2. Enqueue Local JS
-        wp_enqueue_script( 'axios', $plugin_url . 'assets/js/axios.min.js', [], '1.13.2', true );
-        wp_enqueue_script( 'vue', $plugin_url . 'assets/js/vue.min.js', [], '3.5.22', true );
-        wp_enqueue_script( 'vuetify', $plugin_url . 'assets/js/vuetify.min.js', [ 'vue' ], '3.10.5', true );
-        // 3. Enqueue App Logic
-        wp_enqueue_script( 'wp-freighter-app', $plugin_url . 'assets/js/admin-app.js', [ 'vuetify', 'axios' ], WP_FREIGHTER_VERSION, true );
-        
         // 4. Determine Current Site ID (Cookie vs Global)
         // Check for global variable set by domain mapping/bootstrap
         global $stacked_site_id;
@@ -321,6 +312,7 @@ class Run {
             'root'            => esc_url_raw( rest_url( 'wp-freighter/v1/' ) ),
             'nonce'           => wp_create_nonce( 'wp_rest' ),
             'current_site_id' => $current_id,
+            'main_url'        => $this->main_home_url(),
             'currentUser'     => [
                 'username' => wp_get_current_user()->user_login,
                 'email'    => wp_get_current_user()->user_email,
@@ -329,9 +321,6 @@ class Run {
             'stacked_sites'   => ( new Sites )->get(),
         ];
         wp_localize_script( 'wp-freighter-app', 'wpFreighterSettings', $data );
-        
-        // 6. Set Axios Defaults
-        wp_add_inline_script( 'wp-freighter-app', "axios.defaults.headers.common['X-WP-Nonce'] = wpFreighterSettings.nonce; axios.defaults.headers.common['Content-Type'] = 'application/json';", 'after' );
     }
 
     public function admin_menu() {
@@ -441,6 +430,13 @@ class Run {
     }
 
     // --- Helpers ---
+
+    private function main_home_url() {
+        global $wpdb;
+        $prefix = defined( 'TABLE_PREFIX' ) && 'TABLE_PREFIX' !== TABLE_PREFIX ? TABLE_PREFIX : $wpdb->prefix;
+        $home   = $wpdb->get_var( "SELECT option_value FROM {$prefix}options WHERE option_name = 'home'" );
+        return $home ? $home : home_url();
+    }
 
     private function get_wp_config_path() {
         if ( file_exists( ABSPATH . "wp-config.php" ) ) {
