@@ -88,9 +88,8 @@ class Site {
         $data = (object) array_merge( $defaults, $args );
 
         // 1. Calculate New ID
-        $stacked_sites       = ( new Sites )->get();
-        $current_stacked_ids = array_column( $stacked_sites, "stacked_site_id" );
-        $site_id             = ( empty( $current_stacked_ids ) ? 1 : (int) max( $current_stacked_ids ) + 1 );
+        $stacked_sites = ( new Sites )->get();
+        $site_id       = self::next_id( $stacked_sites );
 
         // 2. Prepare Database
         $original_prefix  = $table_prefix;
@@ -236,8 +235,7 @@ class Site {
 
         // 2. Get New ID
         $sites   = ( new Sites )->get();
-        $ids     = array_column( $sites, "stacked_site_id" );
-        $new_id  = ( empty( $ids ) ? 1 : (int) max( $ids ) + 1 );
+        $new_id  = self::next_id( $sites );
         
         // 3. Duplicate Tables
         $new_prefix = "stacked_{$new_id}_";
@@ -532,6 +530,40 @@ EOD;
         if ( file_exists( "$mu_plugins_source/kinsta-mu-plugins" ) ) {
             if ( ! file_exists( $mu_plugins_dest ) ) mkdir( $mu_plugins_dest, 0777, true );
             Sites::copy_recursive( "$mu_plugins_source/kinsta-mu-plugins", "$mu_plugins_dest/kinsta-mu-plugins" );
+        }
+    }
+
+    /**
+     * HELPER: The id for the next tenant.
+     *
+     * One past the highest registered id, skipping any id whose prefix would land on
+     * tables that already exist. The main site itself can sit on a stacked_<n>_ prefix
+     * (a tenant pulled out to its own install keeps it), and create/clone start by
+     * dropping every table under the new prefix, so handing out that n would replace the
+     * main site's database with a fresh install and delete would then remove it entirely.
+     * The same check covers tables an earlier, half-finished tenant left behind.
+     */
+    private static function next_id( $sites ) {
+        global $wpdb;
+        $ids     = array_column( $sites, "stacked_site_id" );
+        $id      = ( empty( $ids ) ? 1 : (int) max( $ids ) + 1 );
+        $primary = self::get_primary_prefix();
+        $tables  = array_column( $wpdb->get_results( "show tables" ), "Tables_in_" . DB_NAME );
+        while ( true ) {
+            $prefix = "stacked_{$id}_";
+            $taken  = ( $prefix === $primary );
+            if ( ! $taken ) {
+                foreach ( $tables as $table ) {
+                    if ( strpos( $table, $prefix ) === 0 ) {
+                        $taken = true;
+                        break;
+                    }
+                }
+            }
+            if ( ! $taken ) {
+                return $id;
+            }
+            $id++;
         }
     }
 
