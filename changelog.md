@@ -1,5 +1,24 @@
 # Changelog
 
+## **1.6.0** - 2026-09-25
+### Added
+- **WP-CLI:** `wp freighter list` takes `--format` (table, csv, ids, json, yaml) and `--field`. `--format=ids` prints a space-separated id list for shell loops, such as `for id in $(wp freighter list --format=ids); do STACKED_SITE_ID=$id wp plugin update --all; done`.
+
+### Changed
+- **Admin redesign:** The Tools → WP Freighter screen is rebuilt without Vue, Vuetify, Axios or the Material Design icon font. Plain HTML, one stylesheet and one script, in the same light/dark design language as wpfreighter.com. Plugin assets drop from 4.9 MB to under 40 KB.
+- **Saving:** Renaming a site or changing a mode shows a save bar with a summary of what changed, plus Discard. Leaving the page with unsaved changes asks first.
+- **Dialogs:** New site, clone and delete use native dialogs; the double `confirm()` prompts are gone. The delete dialog states which content folder goes with the site and how large it is.
+- **Errors:** Failed requests show their message on screen instead of only in the browser console.
+- **Theme:** Light, dark or system (right-click the theme button), remembered per browser.
+
+### Fixed
+- **WP-CLI:** `wp freighter clone` now works as documented. The command was registered as `clone_site`, which still works as an alias.
+- **New tenant ids skip prefixes already in use.** A new or cloned site took the next id after the highest registered one, with no check that `stacked_<id>_` tables were free. When the main site itself sits on a `stacked_<n>_` prefix (a tenant pulled out into its own install keeps it) and the count reached n, creating or cloning dropped and replaced the main site's own tables with a fresh install, and deleting that tenant then removed them entirely. Ids now skip the main site's prefix and any prefix that already has tables.
+- **Blank new sites:** A new tenant site is now given a theme that exists in its theme root. In shared and hybrid mode the installer recorded the default theme even on hosts that no longer carry it, leaving an empty front end; such sites now fall back to the main site's theme. Dedicated sites still download the default theme, and copy the main site's theme in if the download fails.
+
+### Removed
+- `WPFreighter\Dev\AssetFetcher` and the `composer update-assets` script; there are no vendored front-end libraries to fetch any more.
+
 ## **1.5.1** - 2025-12-13
 ### Fixed
 - **WP CLI:** Fixed issue with detecting domain mapping
