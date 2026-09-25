@@ -212,29 +212,28 @@ class CLI extends WP_CLI_Command {
         }
 
         // Build columns dynamically based on configurations
-        $fields = \WP_CLI\Utils\get_flag_value( $assoc_args, 'field', null );
-        if ( ! $fields ) {
-            $fields = [ 'ID' ];
-            // Toggle Name vs Domain
-            if ( $configs->domain_mapping === 'on' ) {
-                $fields[] = 'Domain';
-            } else {
-                $fields[] = 'Name';
-            }
-
-            if ( $configs->files === 'dedicated' ) {
-                $fields[] = 'Content';
-            }
-
-            // Show Uploads path if in Hybrid mode
-            if ( $configs->files === 'hybrid' ) {
-                $fields[] = 'Uploads';
-            }
-
-            $fields[] = 'Created';
+        $fields = [ 'ID' ];
+        // Toggle Name vs Domain
+        if ( $configs->domain_mapping === 'on' ) {
+            $fields[] = 'Domain';
+        } else {
+            $fields[] = 'Name';
         }
 
-        WP_CLI\Utils\format_items( $format, $display_data, $fields );
+        if ( $configs->files === 'dedicated' ) {
+            $fields[] = 'Content';
+        }
+
+        // Show Uploads path if in Hybrid mode
+        if ( $configs->files === 'hybrid' ) {
+            $fields[] = 'Uploads';
+        }
+
+        $fields[] = 'Created';
+
+        // Formatter prints bare values when --field is set
+        $formatter = new \WP_CLI\Formatter( $assoc_args, $fields );
+        $formatter->display_items( $display_data );
     }
 
     /**
