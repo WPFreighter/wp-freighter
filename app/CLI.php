@@ -335,6 +335,9 @@ class CLI extends WP_CLI_Command {
      *
      * wp freighter clone main --name="Staging"
      * wp freighter clone 2 --name="Dev Copy"
+     *
+     * @subcommand clone
+     * @alias clone_site
      */
     public function clone_site( $args, $assoc_args ) {
         list( $source_id ) = $args;
